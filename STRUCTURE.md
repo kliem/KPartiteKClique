@@ -38,14 +38,6 @@ KPartiteGraph
   - `Bitset active_vertices`
   - `vector<Vertex> vertices`
 
-Vertex
-- public:
-  - `void Vertex(bool* incidences, int n_vertices)`
-  - specialized copy that removes weight
-  - int weight
-- private:
-  - Bitset bitset
-
 Bitset
 - public:
   - `void Bitset(int n_vertices)`
