@@ -3,6 +3,8 @@
 
 #include <cstdint>
 #include <vector>
+#include <iostream>
+#include <cassert>
 using namespace std;
 
 class Bitset;
@@ -16,6 +18,7 @@ class Bitset {
         Bitset(int n_vertices, bool fill);
         Bitset(const bool* set_bits, int n_vertices);
         ~Bitset();
+        Bitset(const Bitset& obj);
         int first(int start=0);
         void unset(int index);
         void set(int index);
@@ -26,9 +29,8 @@ class Bitset {
         int limbs;
         void allocate(int n_vertices);
         uint64_t& operator[](int i){ return data[i]; }
+        bool shallow;
 };
-
-class KPartiteKClique;
 
 class KPartiteKClique {
     class KPartiteGraph {
@@ -43,20 +45,20 @@ class KPartiteKClique {
                     Vertex(){
                         is_shallow = true;
                     }
-                    Vertex(KPartiteGraph& graph, const bool* incidences, int n_vertices, int part, int index){
+                    void init(KPartiteGraph* graph, const bool* incidences, int n_vertices, int part, int index){
                         bitset = new Bitset(incidences, n_vertices);
                         is_shallow = false;
                         weight = -1;
-                        part = part;
-                        index = index;
-                        this->graph = &graph;
+                        this->part = part;
+                        this->index = index;
+                        this->graph = graph;
 
                         // Set each vertex adjacent to itself.
                         // This is important, so that after selecting a vertex
                         // the corresponding part will have one ``active_vertex``.
-                        bitset.set(index);
+                        bitset->set(index);
                     };
-                    Vertex(const Vertex &obj){
+                    Vertex(const Vertex& obj){
                         bitset = obj.bitset;
                         is_shallow = true;
                         weight = -1;
@@ -65,8 +67,10 @@ class KPartiteKClique {
                         graph = obj.graph;
                     }
                     ~Vertex(){
-                        if (!is_shallow)
+                        if (!is_shallow){
+                            cout << "deleteing a vertex" << (size_t) bitset << endl;
                             delete bitset;
+                        }
                     }
                     void set_weight();
                     int weight;
@@ -90,8 +94,8 @@ class KPartiteKClique {
                     KPartiteGraph* graph;
             };
             vector<Vertex> vertices;
-            KPartiteGraph(KPartiteKClique* problem, bool fill);
-            KPartiteGraph(){};
+            KPartiteGraph();
+            void init(KPartiteKClique* problem, bool fill);
             ~KPartiteGraph();
             Vertex* last_vertex();
             void pop_last_vertex();
@@ -100,10 +104,10 @@ class KPartiteKClique {
                 for(auto v : vertices)
                     v.set_weight();
             }
-            bool select(KPartiteGraph next);
+            bool select(KPartiteGraph& next);
         private:
-            const int* get_parts() { return problem[0].parts; }
-            const int get_k() { return problem[0].k; }
+            const int* get_parts() { assert(problem); return problem->parts; }
+            const int get_k() { assert(problem); return problem->k; }
             Bitset* active_vertices;
             int* part_sizes;
             KPartiteKClique* problem;
@@ -112,6 +116,7 @@ class KPartiteKClique {
     public:
         const int* k_clique(){ return _k_clique; }
         KPartiteKClique(const bool* const* incidences, const int n_vertices, const int* first_per_part, const int k);
+        KPartiteKClique();
         ~KPartiteKClique();
         bool next();
     private:
