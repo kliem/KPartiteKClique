@@ -50,6 +50,11 @@ class KPartiteKClique {
                         part = part;
                         index = index;
                         this->graph = &graph;
+
+                        // Set each vertex adjacent to itself.
+                        // This is important, so that after selecting a vertex
+                        // the corresponding part will have one ``active_vertex``.
+                        bitset.set(index);
                     };
                     Vertex(const Vertex &obj){
                         bitset = obj.bitset;
