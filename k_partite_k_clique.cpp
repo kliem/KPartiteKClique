@@ -74,13 +74,17 @@ Bitset::Bitset(int n_vertices, bool fill){
 
 void Bitset::allocate(int n_vertices){
     limbs = ((n_vertices-1)/(ALIGNMENT*8) + 1)*(ALIGNMENT/8);
+#if DBG
     cout << "limbs " << limbs << " n_vertices " << n_vertices << endl;
+#endif
     data = (uint64_t*) aligned_alloc(ALIGNMENT, limbs*8);
 }
 
 Bitset::~Bitset(){
     if (!shallow){
+#if DBG
         cout << "freeing a bitset" << (size_t) data << endl;
+#endif
         free(data);
     }
 }
@@ -163,7 +167,9 @@ KPartiteKClique::KPartiteGraph::KPartiteGraph(){
 }
 
 KPartiteKClique::KPartiteGraph::~KPartiteGraph(){
+#if DBG
     cout << "hello1 " << problem->k << (size_t) active_vertices << endl;
+#endif
     delete active_vertices;
     delete[] part_sizes;
 }
@@ -181,7 +187,9 @@ bool KPartiteKClique::KPartiteGraph::select(KPartiteKClique::KPartiteGraph& next
     // Select v.
     problem[0]._k_clique[v->part] = v->index;
     v->intersection(next.active_vertices[0], active_vertices[0]);
-    cout << "select the vertex " << v->index << endl;;
+#if DBG
+    cout << "select the vertex " << v->index << endl;
+#endif
 
     // v may no longer be selected.
     // In current not, because we have removed it.
@@ -203,7 +211,7 @@ bool KPartiteKClique::KPartiteGraph::select(KPartiteKClique::KPartiteGraph& next
 }
 
 bool KPartiteKClique::traceback(){
-    while (current_depth >= 0){
+    while (current_depth >= 1){
         current_depth -= 1;
         if (current_graph().is_valid())
             return true;
@@ -218,27 +226,42 @@ bool KPartiteKClique::next(){
     */
     while (true){
         if (current_depth < k-1){
+#if DBG
             cout << current_depth << " depth" << endl;
+#endif
             if (!current_graph().select(next_graph())){
+#if DBG
                 cout << "need to trace back" << endl;
+#endif
                 if (!traceback())
                     // Out of options.
                     return false;
             }
         } else {
+#if DBG
             cout << "to the end" << endl;
+#endif
             KPartiteGraph::Vertex* vpt = current_graph().last_vertex();
             if (!vpt){
+#if DBG
                 cout << "found no vertex" << endl;
-                if (!traceback())
+#endif
+                if (!traceback()){
+#if DBG
                     cout << "out of options" << endl;
+#endif
                     // Out of options.
                     return false;
+                }
             } else {
+#if DBG
                 cout << "found something" << endl;
+#endif
                 _k_clique[vpt[0].part] = vpt[0].index;
                 current_graph().pop_last_vertex();
+#if DBG
                 cout << "will return true" << endl;
+#endif
                 return true;
             }
         }
@@ -281,7 +304,9 @@ KPartiteKClique::KPartiteKClique(const bool* const* incidences, const int n_vert
 
 
 KPartiteKClique::~KPartiteKClique(){
+#if DBG
     cout << "hello" << endl;
+#endif
     delete[] _k_clique;
     delete[] parts;
     delete[] all_vertices;

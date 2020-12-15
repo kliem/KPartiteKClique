@@ -6,6 +6,7 @@
 #include <iostream>
 #include <cassert>
 using namespace std;
+#define DBG 0
 
 class Bitset;
 
@@ -68,7 +69,9 @@ class KPartiteKClique {
                     }
                     ~Vertex(){
                         if (!is_shallow){
+#if DBG
                             cout << "deleteing a vertex" << (size_t) bitset << endl;
+#endif
                             delete bitset;
                         }
                     }
