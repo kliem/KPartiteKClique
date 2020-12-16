@@ -111,7 +111,7 @@ Bitset::Bitset(const Bitset& obj){
     shallow = true;
 }
 
-void KPartiteKClique::KPartiteGraph::Vertex::set_weight(){
+void KPartiteKClique::Vertex::set_weight(){
     int counter = 0;
     int tmp;
     for (int i=0; i<get_k(); i++){
@@ -132,7 +132,7 @@ void KPartiteKClique::KPartiteGraph::pop_last_vertex(){
     vertices.pop_back();
 }
 
-KPartiteKClique::KPartiteGraph::Vertex* KPartiteKClique::KPartiteGraph::last_vertex(){
+KPartiteKClique::Vertex* KPartiteKClique::KPartiteGraph::last_vertex(){
     if (!vertices.size())
         return NULL;
     Vertex& v = vertices.back();
@@ -190,7 +190,7 @@ KPartiteKClique::KPartiteGraph::~KPartiteGraph(){
 
 
 bool KPartiteKClique::KPartiteGraph::select(KPartiteKClique::KPartiteGraph& next){
-    KPartiteGraph::Vertex* v = last_vertex();
+    Vertex* v = last_vertex();
     if (!v)
         return false;
 
@@ -264,7 +264,7 @@ bool KPartiteKClique::next(){
 #if DBG
             cout << "to the end" << endl;
 #endif
-            KPartiteGraph::Vertex* vpt = current_graph().last_vertex();
+            Vertex* vpt = current_graph().last_vertex();
             if (!vpt){
 #if DBG
                 cout << "found no vertex" << endl;
@@ -317,12 +317,12 @@ KPartiteKClique::KPartiteKClique(const bool* const* incidences, const int n_vert
     for (int i=0; i<k; i++)
         recursive_graphs[i].init(this, i==0);
 
-    all_vertices = new KPartiteGraph::Vertex[n_vertices];
+    all_vertices = new Vertex[n_vertices];
     int current_part = 0;
     for (int i=0; i<n_vertices; i++){
         while ((current_part < k-1) && (i >= parts[current_part + 1]))
             current_part += 1;
-        all_vertices[i].init(recursive_graphs, incidences[i], n_vertices, current_part, i);
+        all_vertices[i].init(this, incidences[i], n_vertices, current_part, i);
     }
 
     recursive_graphs[0].vertices.assign(all_vertices, all_vertices + n_vertices);

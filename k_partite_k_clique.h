@@ -35,69 +35,71 @@ class Bitset {
 };
 
 class KPartiteKClique {
+        class Vertex {
+            friend bool operator<(const Vertex& l, const Vertex& r){
+                return l.weight > r.weight;
+            }
+            public:
+                int index;
+                int part;
+                Vertex(){
+                    is_shallow = true;
+                }
+                void init(KPartiteKClique* problem, const bool* incidences, int n_vertices, int part, int index){
+                    bitset = new Bitset(incidences, n_vertices);
+                    is_shallow = false;
+                    weight = -1;
+                    this->part = part;
+                    this->index = index;
+                    this->problem = problem;
+
+                    // Set each vertex adjacent to itself.
+                    // This is important, so that after selecting a vertex
+                    // the corresponding part will have one ``active_vertex``.
+                    bitset->set(index);
+                };
+                Vertex(const Vertex& obj){
+                    bitset = obj.bitset;
+                    is_shallow = true;
+                    weight = obj.weight;
+                    part = obj.part;
+                    index = obj.index;
+                    problem = obj.problem;
+                }
+                ~Vertex(){
+                    if (!is_shallow){
+#if MEM_DBG
+                        cout << "deleteing a vertex" << (size_t) bitset << endl;
+#endif
+                        delete bitset;
+                    }
+                }
+                void set_weight();
+                int weight;
+                void intersection(Bitset& c, Bitset& r){
+                    // c = this & r.
+                    c.intersection_assign(bitset[0], r);
+                }
+                int intersection_count(Bitset& r, int start, int stop){
+                    return bitset[0].intersection_count(r, start, stop);
+                }
+                int intersection_count(Bitset& r, int part){
+                    return intersection_count(r, get_parts()[part], get_parts()[part+1]);
+                }
+
+            private:
+                const int* get_parts() { return problem->parts; }
+                const int get_k() { return problem->k; }
+                Bitset& get_active_vertices() { return (problem->current_graph()).active_vertices[0]; }
+                bool is_shallow;
+                Bitset* bitset;
+                KPartiteKClique* problem;
+        };
     class KPartiteGraph {
         public:
-            class Vertex {
-                friend bool operator<(const Vertex& l, const Vertex& r){
-                    return l.weight > r.weight;
-                }
-                public:
-                    int index;
-                    int part;
-                    Vertex(){
-                        is_shallow = true;
-                    }
-                    void init(KPartiteGraph* graph, const bool* incidences, int n_vertices, int part, int index){
-                        bitset = new Bitset(incidences, n_vertices);
-                        is_shallow = false;
-                        weight = -1;
-                        this->part = part;
-                        this->index = index;
-                        this->graph = graph;
-
-                        // Set each vertex adjacent to itself.
-                        // This is important, so that after selecting a vertex
-                        // the corresponding part will have one ``active_vertex``.
-                        bitset->set(index);
-                    };
-                    Vertex(const Vertex& obj){
-                        bitset = obj.bitset;
-                        is_shallow = true;
-                        weight = obj.weight;
-                        part = obj.part;
-                        index = obj.index;
-                        graph = obj.graph;
-                    }
-                    ~Vertex(){
-                        if (!is_shallow){
-#if MEM_DBG
-                            cout << "deleteing a vertex" << (size_t) bitset << endl;
-#endif
-                            delete bitset;
-                        }
-                    }
-                    void set_weight();
-                    int weight;
-                    void intersection(Bitset& c, Bitset& r){
-                        // c = this & r.
-                        c.intersection_assign(bitset[0], r);
-                    }
-                    int intersection_count(Bitset& r, int start, int stop){
-                        return bitset[0].intersection_count(r, start, stop);
-                    }
-                    int intersection_count(Bitset& r, int part){
-                        return intersection_count(r, get_parts()[part], get_parts()[part+1]);
-                    }
-
-                private:
-                    const int* get_parts() { return graph[0].get_parts(); }
-                    const int get_k() { return graph[0].get_k(); }
-                    Bitset& get_active_vertices() { return (graph[0].current_graph()).active_vertices[0]; }
-                    bool is_shallow;
-                    Bitset* bitset;
-                    KPartiteGraph* graph;
-            };
             vector<Vertex> vertices;
+            Bitset* active_vertices;
+
             KPartiteGraph();
             void init(KPartiteKClique* problem, bool fill);
             ~KPartiteGraph();
@@ -123,7 +125,6 @@ class KPartiteKClique {
             const int get_k() { assert(problem); return problem->k; }
             KPartiteGraph& current_graph(){ return problem->current_graph(); }
             KPartiteGraph& next_graph(){ return problem->next_graph(); }
-            Bitset* active_vertices;
             int* part_sizes;
             KPartiteKClique* problem;
     };
@@ -140,7 +141,7 @@ class KPartiteKClique {
         int k;
         int current_depth;
         int n_vertices;
-        KPartiteGraph::Vertex* all_vertices;
+        Vertex* all_vertices;
         KPartiteGraph* recursive_graphs;
         KPartiteGraph& current_graph(){ return recursive_graphs[current_depth]; }
         KPartiteGraph& next_graph(){ return recursive_graphs[current_depth + 1]; }
