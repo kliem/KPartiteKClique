@@ -25,6 +25,7 @@ class Bitset {
         void unset(int index);
         void set(int index);
         int intersection_count(Bitset& r, int start, int stop);
+        bool is_empty(int start, int stop);
         void intersection_assign(Bitset& l, Bitset& r);
     private:
         uint64_t* data;
@@ -80,10 +81,10 @@ class KPartiteKClique {
                     // c = this & r.
                     c.intersection_assign(bitset[0], r);
                 }
-                int intersection_count(Bitset& r, int start, int stop){
+                inline int intersection_count(Bitset& r, int start, int stop){
                     return bitset[0].intersection_count(r, start, stop);
                 }
-                int intersection_count(Bitset& r, int part){
+                inline int intersection_count(Bitset& r, int part){
                     return intersection_count(r, get_parts()[part], get_parts()[part+1]);
                 }
 
@@ -106,14 +107,12 @@ class KPartiteKClique {
             Vertex* last_vertex();
             void pop_last_vertex();
             bool is_valid();
-            void set_weights(){
-                Vertex* v;
-                for(int i=0; i<vertices.size(); i++){
-                    v = vertices.data() + i;
+            inline void set_weights(){
+                for(Vertex& v: vertices){
 #if DBG
                     cout << "set weight of " << v->index << endl;
 #endif
-                    v->set_weight();
+                    v.set_weight();
 #if DBG
                     cout << "weight is " << v->weight << endl;
 #endif

@@ -1,3 +1,7 @@
+#if __POPCNT__
+    #include <immintrin.h>
+#endif
+
 #include "k_partite_k_clique.h"
 
 #include <algorithm>
@@ -12,13 +16,17 @@ void Bitset::intersection_assign(Bitset& l, Bitset& r){
         data[i] = l[i] & r[i];
 }
 
-int popcount(uint64_t i){
+inline int popcount(uint64_t i){
+#if (__POPCNT__) && (INTPTR_MAX == INT64_MAX)
+    return _mm_popcnt_u64(i);
+#else
     i = i - ((i >> 1) & 0x5555555555555555ULL);
     i = (i & 0x3333333333333333ULL) + ((i >> 2) & 0x3333333333333333ULL);
     return ( ((i + (i >> 4)) & 0x0f0f0f0f0f0f0f0fULL) * 0x0101010101010101ULL ) >> 56;
+#endif
 }
 
-int Bitset::intersection_count(Bitset& r, int start, int stop){
+inline int Bitset::intersection_count(Bitset& r, int start, int stop){
     int counter = 0;
     for (int i=start/64 + 1; i< stop/64; i++)
         counter += popcount(data[i] & r[i]);
@@ -44,6 +52,28 @@ int Bitset::intersection_count(Bitset& r, int start, int stop){
         }
     }
     return counter;
+}
+
+bool Bitset::is_empty(int start, int stop){
+    for (int i=start/64 + 1; i< stop/64; i++){
+        if (data[i]) return false;
+    }
+
+    uint64_t start_limb = data[start/64];
+    if (start % 64)
+        start_limb &= ~(((uint64_t) -1) >> (64 - (start % 64)));
+
+    uint64_t end_limb;
+    if (stop/64 < limbs){
+        end_limb = data[stop/64];
+        if (stop % 64)
+            end_limb &= (((uint64_t) -1) >> (64 - (stop % 64)));
+    }
+
+    if (start/64 == stop/64)
+        return 0 == start_limb & end_limb;
+
+    return 0 == start_limb | end_limb;
 }
 
 void Bitset::set(int index){
@@ -111,7 +141,7 @@ Bitset::Bitset(const Bitset& obj){
     shallow = true;
 }
 
-void KPartiteKClique::Vertex::set_weight(){
+inline void KPartiteKClique::Vertex::set_weight(){
     int counter = 0;
     int tmp;
     for (int i=0; i<get_k(); i++){
@@ -224,6 +254,11 @@ bool KPartiteKClique::KPartiteGraph::select(KPartiteKClique::KPartiteGraph& next
 
     next.set_weights();
     sort(next.vertices.begin(), next.vertices.end());
+    if (problem[0].current_depth > 30){
+        next.vertices.assign(vertices.begin(), vertices.end());
+        next.set_weights();
+        sort(next.vertices.begin(), next.vertices.end());
+    }
 #if DBG
     for (Vertex& v1: next.vertices){
         cout << v1.index << " " << v1.weight << endl;
