@@ -25,13 +25,13 @@ int Bitset::intersection_count(Bitset& r, int start, int stop){
 
     uint64_t start_limb = data[start/64] & r[start/64];
     if (start % 64)
-        start_limb &= ((uint64_t) -1) >> (64 - (start % 64));
+        start_limb &= ~(((uint64_t) -1) >> (64 - (start % 64)));
 
     uint64_t end_limb;
     if (stop/64 < limbs){
         end_limb = data[stop/64] & r[stop/64];
         if (stop % 64)
-            end_limb &= ~(((uint64_t) -1) >> (64 - (stop % 64)));
+            end_limb &= (((uint64_t) -1) >> (64 - (stop % 64)));
     }
 
     if (start/64 == stop/64){
@@ -74,7 +74,7 @@ Bitset::Bitset(int n_vertices, bool fill){
 
 void Bitset::allocate(int n_vertices){
     limbs = ((n_vertices-1)/(ALIGNMENT*8) + 1)*(ALIGNMENT/8);
-#if DBG
+#if MEM_DBG
     cout << "limbs " << limbs << " n_vertices " << n_vertices << endl;
 #endif
     data = (uint64_t*) aligned_alloc(ALIGNMENT, limbs*8);
@@ -82,7 +82,7 @@ void Bitset::allocate(int n_vertices){
 
 Bitset::~Bitset(){
     if (!shallow){
-#if DBG
+#if MEM_DBG
         cout << "freeing a bitset" << (size_t) data << endl;
 #endif
         free(data);
@@ -103,6 +103,9 @@ Bitset::Bitset(const bool* set_bits, int n_vertices){
 }
 
 Bitset::Bitset(const Bitset& obj){
+#if MEM_DBG
+    cout << "create a shallow bitset" << endl;
+#endif
     data = obj.data;
     limbs = obj.limbs;
     shallow = true;
@@ -138,11 +141,17 @@ KPartiteKClique::KPartiteGraph::Vertex* KPartiteKClique::KPartiteGraph::last_ver
     // that are no longer
     // an option.
     while (!v.weight){
+#if DBG
+        cout << "actual remove of vertex " << v.index << endl;
+#endif
         pop_last_vertex();
         if (!vertices.size())
             return NULL;
         v = vertices.back();
     }
+#if DBG
+    cout << "last vertex is " << v.index << " with weight " << v.weight << endl;
+#endif
     return &v;
 }
 
@@ -158,6 +167,11 @@ void KPartiteKClique::KPartiteGraph::init(KPartiteKClique* problem, bool fill){
     active_vertices = new Bitset(problem[0].n_vertices, fill);
     vertices = vector<Vertex>();
     part_sizes = new int[problem[0].k];
+    int counter = 0;
+    for (int i=0; i<problem[0].k; i++){
+        part_sizes[i] = problem[0].parts[i+1];
+        counter += part_sizes[i];
+    }
     this->problem = problem;
 }
 
@@ -167,8 +181,8 @@ KPartiteKClique::KPartiteGraph::KPartiteGraph(){
 }
 
 KPartiteKClique::KPartiteGraph::~KPartiteGraph(){
-#if DBG
-    cout << "hello1 " << problem->k << (size_t) active_vertices << endl;
+#if MEM_DBG
+    cout << "deleting KPartiteGraph " << problem->k << (size_t) active_vertices << endl;
 #endif
     delete active_vertices;
     delete[] part_sizes;
@@ -184,7 +198,7 @@ bool KPartiteKClique::KPartiteGraph::select(KPartiteKClique::KPartiteGraph& next
     for (int i=0; i<get_k(); i++)
         next.part_sizes[i] = part_sizes[i];
 
-    // Select v.
+    // pelect v.
     problem[0]._k_clique[v->part] = v->index;
     v->intersection(next.active_vertices[0], active_vertices[0]);
 #if DBG
@@ -195,17 +209,26 @@ bool KPartiteKClique::KPartiteGraph::select(KPartiteKClique::KPartiteGraph& next
     // In current not, because we have removed it.
     // In next not, because it is selected already.
     pop_last_vertex();
-    next.vertices = vertices;
+    next.vertices.assign(vertices.begin(), vertices.end());
 
     // Note that above, the part size of ``_k_clique[v.part]``
     // current is one smaller than next.
     // This is intentional, as in next the vertex was selected, not
     // removed.
 
+    // Raise the current
+    // depth, such that the
+    // weights get set
+    // accordingly.
+    problem[0].current_depth += 1;
+
     next.set_weights();
     sort(next.vertices.begin(), next.vertices.end());
-
-    problem[0].current_depth += 1;
+#if DBG
+    for (Vertex& v1: next.vertices){
+        cout << v1.index << " " << v1.weight << endl;
+    }
+#endif
 
     return true;
 }
@@ -256,6 +279,7 @@ bool KPartiteKClique::next(){
             } else {
 #if DBG
                 cout << "found something" << endl;
+                cout << "it is vertex " << vpt[0].index << endl;
 #endif
                 _k_clique[vpt[0].part] = vpt[0].index;
                 current_graph().pop_last_vertex();
@@ -278,11 +302,14 @@ KPartiteKClique::KPartiteKClique(){
 KPartiteKClique::KPartiteKClique(const bool* const* incidences, const int n_vertices, const int* first_per_part, const int k){
     assert(k>0);
 
+    current_depth = 0;
+
     _k_clique = new int[k];
-    parts = new int[k];
+    parts = new int[k+1];
     for (int i=0; i<k; i++){
         parts[i] = first_per_part[i];
     }
+    parts[k] = n_vertices;
     this->n_vertices = n_vertices;
     this->k = k;
 
@@ -304,7 +331,7 @@ KPartiteKClique::KPartiteKClique(const bool* const* incidences, const int n_vert
 
 
 KPartiteKClique::~KPartiteKClique(){
-#if DBG
+#if MEM_DBG
     cout << "hello" << endl;
 #endif
     delete[] _k_clique;

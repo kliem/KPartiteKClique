@@ -4,6 +4,7 @@
 # distutils: language = c++
 
 from libcpp cimport bool
+from cysignals.signals      cimport sig_on, sig_off
 
 cdef extern from "k_partite_k_clique.h":
     cdef cppclass KPartiteKClique:
@@ -66,9 +67,13 @@ def KPartiteKClique_iter(G, parts):
     cdef KPartiteKClique * K = new KPartiteKClique(incidences, n, first_per_part, k)
 
     try:
-        print('hi2')
-        while K.next():
+        sig_on()
+        foo = K.next()
+        sig_off()
+        while foo:
             yield [id_to_vertex(K.k_clique()[i]) for i in range(k)]
+            sig_on()
+            foo = K.next()
+            sig_off()
     finally:
-        print('hi')
         del K

@@ -7,6 +7,7 @@
 #include <cassert>
 using namespace std;
 #define DBG 0
+#define MEM_DBG 0
 
 class Bitset;
 
@@ -62,14 +63,14 @@ class KPartiteKClique {
                     Vertex(const Vertex& obj){
                         bitset = obj.bitset;
                         is_shallow = true;
-                        weight = -1;
+                        weight = obj.weight;
                         part = obj.part;
                         index = obj.index;
                         graph = obj.graph;
                     }
                     ~Vertex(){
                         if (!is_shallow){
-#if DBG
+#if MEM_DBG
                             cout << "deleteing a vertex" << (size_t) bitset << endl;
 #endif
                             delete bitset;
@@ -91,7 +92,7 @@ class KPartiteKClique {
                 private:
                     const int* get_parts() { return graph[0].get_parts(); }
                     const int get_k() { return graph[0].get_k(); }
-                    Bitset& get_active_vertices() { return graph[0].active_vertices[0]; }
+                    Bitset& get_active_vertices() { return (graph[0].current_graph()).active_vertices[0]; }
                     bool is_shallow;
                     Bitset* bitset;
                     KPartiteGraph* graph;
@@ -104,13 +105,24 @@ class KPartiteKClique {
             void pop_last_vertex();
             bool is_valid();
             void set_weights(){
-                for(auto v : vertices)
-                    v.set_weight();
+                Vertex* v;
+                for(int i=0; i<vertices.size(); i++){
+                    v = vertices.data() + i;
+#if DBG
+                    cout << "set weight of " << v->index << endl;
+#endif
+                    v->set_weight();
+#if DBG
+                    cout << "weight is " << v->weight << endl;
+#endif
+                }
             }
             bool select(KPartiteGraph& next);
         private:
             const int* get_parts() { assert(problem); return problem->parts; }
             const int get_k() { assert(problem); return problem->k; }
+            KPartiteGraph& current_graph(){ return problem->current_graph(); }
+            KPartiteGraph& next_graph(){ return problem->next_graph(); }
             Bitset* active_vertices;
             int* part_sizes;
             KPartiteKClique* problem;
