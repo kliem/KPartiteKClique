@@ -84,6 +84,10 @@ void Bitset::unset(int index){
     data[index/64] &= ~(((uint64_t) 1) << (index % 64));
 }
 
+bool Bitset::has(int index){
+    return data[index/64] & (((uint64_t) 1) << (index % 64));
+}
+
 Bitset::Bitset(int n_vertices, bool fill){
     /*
     Initalize bitset.
@@ -144,6 +148,10 @@ Bitset::Bitset(const Bitset& obj){
 inline void KPartiteKClique::Vertex::set_weight(){
     int counter = 0;
     int tmp;
+    if (!problem->current_graph().active_vertices->has(index)){
+        weight = 0;
+        return;
+    }
     for (int i=0; i<get_k(); i++){
         tmp = intersection_count(get_active_vertices(), i);
         counter += tmp;
@@ -155,14 +163,14 @@ inline void KPartiteKClique::Vertex::set_weight(){
     weight = counter;
 }
 
-void KPartiteKClique::KPartiteGraph::pop_last_vertex(){
+inline void KPartiteKClique::KPartiteGraph::pop_last_vertex(){
     Vertex& v = vertices.back();
     part_sizes[v.part] -= 1;
     active_vertices[0].unset(v.index);
     vertices.pop_back();
 }
 
-KPartiteKClique::Vertex* KPartiteKClique::KPartiteGraph::last_vertex(){
+inline KPartiteKClique::Vertex* KPartiteKClique::KPartiteGraph::last_vertex(){
     if (!vertices.size())
         return NULL;
     Vertex& v = vertices.back();
@@ -254,11 +262,6 @@ bool KPartiteKClique::KPartiteGraph::select(KPartiteKClique::KPartiteGraph& next
 
     next.set_weights();
     sort(next.vertices.begin(), next.vertices.end());
-    if (problem[0].current_depth > 30){
-        next.vertices.assign(vertices.begin(), vertices.end());
-        next.set_weights();
-        sort(next.vertices.begin(), next.vertices.end());
-    }
 #if DBG
     for (Vertex& v1: next.vertices){
         cout << v1.index << " " << v1.weight << endl;

@@ -23,6 +23,7 @@ class Bitset {
         Bitset(const Bitset& obj);
         int first(int start=0);
         void unset(int index);
+        bool has(int index);
         void set(int index);
         int intersection_count(Bitset& r, int start, int stop);
         bool is_empty(int start, int stop);
@@ -119,6 +120,12 @@ class KPartiteKClique {
                 }
             }
             bool select(KPartiteGraph& next);
+            inline int count_active_vertices(int start, int stop){
+                return active_vertices[0].intersection_count(active_vertices[0], start, stop);
+            }
+            inline int count_active_vertices(int part){
+                return count_active_vertices(get_parts()[part], get_parts()[part+1]);
+            }
         private:
             const int* get_parts() { assert(problem); return problem->parts; }
             const int get_k() { assert(problem); return problem->k; }
