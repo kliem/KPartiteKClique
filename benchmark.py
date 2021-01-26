@@ -1,4 +1,5 @@
 from sage.all import *
+from time import time
 
 def get_random_k_partite_graph(n_parts, min_part_size, max_part_size, dens1, dens2):
     r"""
@@ -26,3 +27,18 @@ def get_random_k_partite_graph(n_parts, min_part_size, max_part_size, dens1, den
                         G.add_edge([i,i1])
 
     return G, parts
+
+def benchmark(*args):
+    G, parts = get_random_k_partite_graph(*args)
+    it = KPartiteKClique_iter(G, parts, benchmark=True)
+    _ = next(it)
+    a = time()
+    _ = next(it)
+    b = time()
+    out1 = b - a
+    it = KPartiteKClique_iter(G, parts, benchmark=True)
+    _ = next(it)
+    a = time()
+    sum(1 for _ in it)
+    b = time()
+    return out1, b - a

@@ -16,7 +16,7 @@ cdef extern from "k_partite_k_clique.h":
 from sage.ext.memory_allocator cimport MemoryAllocator
 from libcpp cimport bool
 
-def KPartiteKClique_iter(G, parts):
+def KPartiteKClique_iter(G, parts, benchmark=False):
     """
     Iterates over all k-cliques
     """
@@ -63,6 +63,9 @@ def KPartiteKClique_iter(G, parts):
                 raise ValueError("not a k-partite graph")
             incidences[ui][vi] = True
             incidences[vi][ui] = True
+
+    if benchmark:
+        yield []
 
     cdef KPartiteKClique * K = new KPartiteKClique(incidences, n, first_per_part, k)
 
