@@ -28,9 +28,19 @@ def get_random_k_partite_graph(n_parts, min_part_size, max_part_size, dens1, den
 
     return G, parts
 
-def benchmark(*args):
+def benchmark_random(*args):
     G, parts = get_random_k_partite_graph(*args)
-    it = KPartiteKClique_iter(G, parts, benchmark=True)
+    return _benchmark(G, parts)
+
+def benchmark_sample(G):
+    dic_parts = {v: v[0] for v in G.vertices()}
+    parts = [[] for _ in dic_parts.keys()]
+    for vertex in dic_parts:
+        parts[dic_parts[vertex]].append(vertex)
+    return _benchmark(G, parts)
+
+def _benchmark(*args):
+    it = KPartiteKClique_iter(*args, benchmark=True)
     _ = next(it)
     a = time()
     try:
@@ -39,7 +49,7 @@ def benchmark(*args):
         pass
     b = time()
     out1 = b - a
-    it = KPartiteKClique_iter(G, parts, benchmark=True)
+    it = KPartiteKClique_iter(*args, benchmark=True)
     _ = next(it)
     a = time()
     sum(1 for _ in it)
