@@ -33,7 +33,10 @@ def benchmark(*args):
     it = KPartiteKClique_iter(G, parts, benchmark=True)
     _ = next(it)
     a = time()
-    _ = next(it)
+    try:
+        _ = next(it)
+    except StopIteration:
+        pass
     b = time()
     out1 = b - a
     it = KPartiteKClique_iter(G, parts, benchmark=True)
