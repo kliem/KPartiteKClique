@@ -30,6 +30,7 @@ inline uint64_t one_set_bit(int n){
     return ((uint64_t) 1) << (n % 64);
 }
 
+
 // Bitsets
 
 Bitset::Bitset(int n_vertices, bool fill){
@@ -38,7 +39,6 @@ Bitset::Bitset(int n_vertices, bool fill){
 
     Fill if ``fill``.
     */
-    shallow = false;
     allocate(n_vertices);
     if (!fill)
         return;
@@ -56,7 +56,6 @@ Bitset::Bitset(const bool* set_bits, int n_vertices){
     /*
     Initialize bitset with the given bits.
     */
-    shallow = false;
     allocate(n_vertices);
 
     for(int i=0; i < (n_vertices-1)/64 + 1; i++)
@@ -104,12 +103,14 @@ inline int Bitset::intersection_count(Bitset& r, int start, int stop){
 
     uint64_t start_limb = data[start/64] & r[start/64];
     if (start % 64)
+        // Remove the lower bits.
         start_limb &= ~lower_n_bits(start % 64);
 
     uint64_t end_limb;
     if (stop/64 < limbs){
         end_limb = data[stop/64] & r[stop/64];
         if (stop % 64)
+            // Remove the upper bits.
             end_limb &= lower_n_bits(stop % 64);
     }
 
@@ -168,6 +169,7 @@ bool Bitset::has(int index){
 }
 
 void Bitset::allocate(int n_vertices){
+    shallow = false;
     limbs = ((n_vertices-1)/(ALIGNMENT*8) + 1)*(ALIGNMENT/8);
 #if MEM_DBG
     cout << "limbs " << limbs << " n_vertices " << n_vertices << endl;
@@ -175,41 +177,57 @@ void Bitset::allocate(int n_vertices){
     data = (uint64_t*) aligned_alloc(ALIGNMENT, limbs*8);
 }
 
+
 // Vertex
 
 inline void KPartiteKClique::Vertex::set_weight(){
+    // The weight is the number of vertices that are still available when
+    // selecting this vertex.
+    // However, when selecting the vertex no longer allows a k-clique,
+    // the weight is always set to 0.
     int counter = 0;
     int tmp;
-    if (!problem->current_graph().active_vertices->has(index)){
+    Bitset& active_vertices = get_active_vertices();
+    if (!active_vertices.has(index)){
         weight = 0;
         return;
     }
     for (int i=0; i<get_k(); i++){
-        tmp = intersection_count(get_active_vertices(), i);
+        tmp = intersection_count(active_vertices, i);
         counter += tmp;
         if (!tmp){
+            // This vertex would not allow for a k-clique anymore.
             weight = 0;
+            active_vertices.unset(index);
             return;
         }
     }
     weight = counter;
 }
 
+
+// KPartiteGraph
+
 inline void KPartiteKClique::KPartiteGraph::pop_last_vertex(){
     Vertex& v = vertices.back();
     part_sizes[v.part] -= 1;
-    active_vertices[0].unset(v.index);
+    active_vertices->unset(v.index);
     vertices.pop_back();
 }
 
 inline KPartiteKClique::Vertex* KPartiteKClique::KPartiteGraph::last_vertex(){
+    /*
+    Get the last vertex, which is (possibly) a valid choice.
+
+    Pop all vertices that are no longer valid choices.
+    */
     if (!vertices.size())
         return NULL;
     Vertex& v = vertices.back();
 
     // Remove all vertices,
     // that are no longer
-    // an option.
+    // a valid choice.
     while (!v.weight){
 #if DBG
         cout << "actual remove of vertex " << v.index << endl;
@@ -225,8 +243,6 @@ inline KPartiteKClique::Vertex* KPartiteKClique::KPartiteGraph::last_vertex(){
     return &v;
 }
 
-// KPartiteGraph
-
 bool KPartiteKClique::KPartiteGraph::is_valid(){
     for (int i=0; i<get_k(); i++){
         if (part_sizes[i] == 0)
@@ -236,13 +252,10 @@ bool KPartiteKClique::KPartiteGraph::is_valid(){
 }
 
 void KPartiteKClique::KPartiteGraph::init(KPartiteKClique* problem, bool fill){
-    active_vertices = new Bitset(problem[0].n_vertices, fill);
-    vertices = vector<Vertex>();
-    part_sizes = new int[problem[0].k];
-    int counter = 0;
-    for (int i=0; i<problem[0].k; i++){
-        part_sizes[i] = problem[0].parts[i+1];
-        counter += part_sizes[i];
+    active_vertices = new Bitset(problem->n_vertices, fill);
+    part_sizes = new int[problem->k];
+    for (int i=0; i < problem->k; i++){
+        part_sizes[i] = problem->parts[i+1] - problem->parts[i];
     }
     this->problem = problem;
 }
@@ -250,6 +263,7 @@ void KPartiteKClique::KPartiteGraph::init(KPartiteKClique* problem, bool fill){
 KPartiteKClique::KPartiteGraph::KPartiteGraph(){
     active_vertices = NULL;
     part_sizes = NULL;
+    vertices = vector<Vertex>();
 }
 
 KPartiteKClique::KPartiteGraph::~KPartiteGraph(){
@@ -270,8 +284,8 @@ bool KPartiteKClique::KPartiteGraph::select(KPartiteKClique::KPartiteGraph& next
         next.part_sizes[i] = part_sizes[i];
 
     // pelect v.
-    problem[0]._k_clique[v->part] = v->index;
-    v->intersection(next.active_vertices[0], active_vertices[0]);
+    problem->_k_clique[v->part] = v->index;
+    v->intersection(*next.active_vertices, *active_vertices);
 #if DBG
     cout << "select the vertex " << v->index << endl;
 #endif
@@ -291,7 +305,7 @@ bool KPartiteKClique::KPartiteGraph::select(KPartiteKClique::KPartiteGraph& next
     // depth, such that the
     // weights get set
     // accordingly.
-    problem[0].current_depth += 1;
+    problem->current_depth += 1;
 
     next.set_weights();
     sort(next.vertices.begin(), next.vertices.end());
@@ -352,9 +366,9 @@ bool KPartiteKClique::next(){
             } else {
 #if DBG
                 cout << "found something" << endl;
-                cout << "it is vertex " << vpt[0].index << endl;
+                cout << "it is vertex " << vpt->index << endl;
 #endif
-                _k_clique[vpt[0].part] = vpt[0].index;
+                _k_clique[vpt->part] = vpt->index;
                 current_graph().pop_last_vertex();
 #if DBG
                 cout << "will return true" << endl;
@@ -398,8 +412,8 @@ KPartiteKClique::KPartiteKClique(const bool* const* incidences, const int n_vert
         all_vertices[i].init(this, incidences[i], n_vertices, current_part, i);
     }
 
-    recursive_graphs[0].vertices.assign(all_vertices, all_vertices + n_vertices);
-    recursive_graphs[0].set_weights();
+    recursive_graphs->vertices.assign(all_vertices, all_vertices + n_vertices);
+    recursive_graphs->set_weights();
 }
 
 

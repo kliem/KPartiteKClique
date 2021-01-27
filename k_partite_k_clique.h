@@ -36,11 +36,15 @@ class Bitset {
 class KPartiteKClique {
         class Vertex {
             friend bool operator<(const Vertex& l, const Vertex& r){
+                // The lower the weight, the higher the obstruction when
+                // selecting this vertex.
+                // We want to select vertices with high obstruction first
+                // and put the last (to be popped first).
                 return l.weight > r.weight;
             }
             public:
-                int index;
-                int part;
+                int index;  // The index in the original graph.
+                int part;  // The part in the orginal graph.
                 Vertex(){
                     is_shallow = true;
                 }
@@ -58,6 +62,7 @@ class KPartiteKClique {
                     bitset->set(index);
                 };
                 Vertex(const Vertex& obj){
+                    // Make a shallow copy.
                     bitset = obj.bitset;
                     is_shallow = true;
                     weight = obj.weight;
@@ -77,23 +82,24 @@ class KPartiteKClique {
                 int weight;
                 void intersection(Bitset& c, Bitset& r){
                     // c = this & r.
-                    c.intersection_assign(bitset[0], r);
+                    c.intersection_assign(*bitset, r);
                 }
                 inline int intersection_count(Bitset& r, int start, int stop){
-                    return bitset[0].intersection_count(r, start, stop);
+                    return bitset->intersection_count(r, start, stop);
                 }
                 inline int intersection_count(Bitset& r, int part){
                     return intersection_count(r, get_parts()[part], get_parts()[part+1]);
                 }
 
             private:
-                const int* get_parts() { return problem->parts; }
-                const int get_k() { return problem->k; }
-                Bitset& get_active_vertices() { return (problem->current_graph()).active_vertices[0]; }
                 bool is_shallow;
                 Bitset* bitset;
                 KPartiteKClique* problem;
+                const int* get_parts() { return problem->parts; }
+                const int get_k() { return problem->k; }
+                Bitset& get_active_vertices() { return *(problem->current_graph()).active_vertices; }
         };
+
     class KPartiteGraph {
         public:
             vector<Vertex> vertices;
@@ -118,7 +124,7 @@ class KPartiteKClique {
             }
             bool select(KPartiteGraph& next);
             inline int count_active_vertices(int start, int stop){
-                return active_vertices[0].intersection_count(active_vertices[0], start, stop);
+                return active_vertices->intersection_count(*active_vertices, start, stop);
             }
             inline int count_active_vertices(int part){
                 return count_active_vertices(get_parts()[part], get_parts()[part+1]);
