@@ -10,13 +10,7 @@
 
 const int ALIGNMENT = 8;
 
-// Bitsets
-
-void Bitset::intersection_assign(Bitset& l, Bitset& r){
-    // Assumes all of same length.
-    for (int i=0; i<limbs; i++)
-        data[i] = l[i] & r[i];
-}
+// Bitset helpers.
 
 inline int popcount(uint64_t i){
 #if (__POPCNT__) && (INTPTR_MAX == INT64_MAX)
@@ -26,6 +20,76 @@ inline int popcount(uint64_t i){
     i = (i & 0x3333333333333333ULL) + ((i >> 2) & 0x3333333333333333ULL);
     return ( ((i + (i >> 4)) & 0x0f0f0f0f0f0f0f0fULL) * 0x0101010101010101ULL ) >> 56;
 #endif
+}
+
+inline uint64_t lower_n_bits(int n){
+    return ((uint64_t) -1) >> (64 - n);
+}
+
+inline uint64_t one_set_bit(int n){
+    return ((uint64_t) 1) << (n % 64);
+}
+
+// Bitsets
+
+Bitset::Bitset(int n_vertices, bool fill){
+    /*
+    Initalize bitset.
+
+    Fill if ``fill``.
+    */
+    shallow = false;
+    allocate(n_vertices);
+    if (!fill)
+        return;
+
+    // Fill.
+    for(int i=0; i<n_vertices/64; i++){
+        data[i] = -1;
+    }
+    // Remove trailing bits.
+    if (n_vertices % 64)
+        data[n_vertices/64] = lower_n_bits(n_vertices % 64);
+}
+
+Bitset::Bitset(const bool* set_bits, int n_vertices){
+    /*
+    Initialize bitset with the given bits.
+    */
+    shallow = false;
+    allocate(n_vertices);
+
+    for(int i=0; i < (n_vertices-1)/64 + 1; i++)
+        data[i] = 0;
+
+    for(int i=0; i<n_vertices; i++){
+        if (set_bits[i])
+            set(i);
+    }
+}
+
+Bitset::Bitset(const Bitset& obj){
+#if MEM_DBG
+    cout << "create a shallow bitset" << endl;
+#endif
+    data = obj.data;
+    limbs = obj.limbs;
+    shallow = true;
+}
+
+Bitset::~Bitset(){
+    if (!shallow){
+#if MEM_DBG
+        cout << "freeing a bitset" << (size_t) data << endl;
+#endif
+        free(data);
+    }
+}
+
+void Bitset::intersection_assign(Bitset& l, Bitset& r){
+    // Assumes all of same length.
+    for (int i=0; i<limbs; i++)
+        data[i] = l[i] & r[i];
 }
 
 inline int Bitset::intersection_count(Bitset& r, int start, int stop){
@@ -40,13 +104,13 @@ inline int Bitset::intersection_count(Bitset& r, int start, int stop){
 
     uint64_t start_limb = data[start/64] & r[start/64];
     if (start % 64)
-        start_limb &= ~(((uint64_t) -1) >> (64 - (start % 64)));
+        start_limb &= ~lower_n_bits(start % 64);
 
     uint64_t end_limb;
     if (stop/64 < limbs){
         end_limb = data[stop/64] & r[stop/64];
         if (stop % 64)
-            end_limb &= (((uint64_t) -1) >> (64 - (stop % 64)));
+            end_limb &= lower_n_bits(stop % 64);
     }
 
     if (start/64 == stop/64){
@@ -92,33 +156,15 @@ bool Bitset::is_empty(int start, int stop){
 }
 
 void Bitset::set(int index){
-    data[index/64] |= ((uint64_t) 1) << (index % 64);
+    data[index/64] |= one_set_bit(index % 64);
 }
 
 void Bitset::unset(int index){
-    data[index/64] &= ~(((uint64_t) 1) << (index % 64));
+    data[index/64] &= ~one_set_bit(index % 64);
 }
 
 bool Bitset::has(int index){
-    return data[index/64] & (((uint64_t) 1) << (index % 64));
-}
-
-Bitset::Bitset(int n_vertices, bool fill){
-    /*
-    Initalize bitset.
-
-    Fill if ``fill``.
-    */
-    shallow = false;
-    limbs = (n_vertices-1)/64 + 1;
-    allocate(n_vertices);
-    if (!fill)
-        return;
-    for(int i=0; i<n_vertices/64; i++){
-        data[i] = -1;
-    }
-    if (n_vertices % 64)
-        data[n_vertices/64] = (((uint64_t) -1) >> (64 - (n_vertices % 64)));
+    return data[index/64] & one_set_bit(index % 64);
 }
 
 void Bitset::allocate(int n_vertices){
@@ -127,37 +173,6 @@ void Bitset::allocate(int n_vertices){
     cout << "limbs " << limbs << " n_vertices " << n_vertices << endl;
 #endif
     data = (uint64_t*) aligned_alloc(ALIGNMENT, limbs*8);
-}
-
-Bitset::~Bitset(){
-    if (!shallow){
-#if MEM_DBG
-        cout << "freeing a bitset" << (size_t) data << endl;
-#endif
-        free(data);
-    }
-}
-
-Bitset::Bitset(const bool* set_bits, int n_vertices){
-    shallow = false;
-    allocate(n_vertices);
-
-    for(int i=0; i < (n_vertices-1)/64 + 1; i++)
-        data[i] = 0;
-
-    for(int i=0; i<n_vertices; i++){
-        if (set_bits[i])
-            set(i);
-    }
-}
-
-Bitset::Bitset(const Bitset& obj){
-#if MEM_DBG
-    cout << "create a shallow bitset" << endl;
-#endif
-    data = obj.data;
-    limbs = obj.limbs;
-    shallow = true;
 }
 
 // Vertex

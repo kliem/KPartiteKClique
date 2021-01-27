@@ -14,19 +14,16 @@ class Bitset;
 class Bitset {
 
     public:
-        Bitset(int n_vertices){
-            Bitset(n_vertices, false);
-        }
-        Bitset(int n_vertices, bool fill);
+        Bitset(int n_vertices, bool fill=false);
         Bitset(const bool* set_bits, int n_vertices);
-        ~Bitset();
         Bitset(const Bitset& obj);
-        int first(int start=0);
+        ~Bitset();
+        int first(int start=0);  // curently neither used nor defined
         void unset(int index);
         bool has(int index);
         void set(int index);
         int intersection_count(Bitset& r, int start, int stop);
-        bool is_empty(int start, int stop);
+        bool is_empty(int start, int stop);  // currently not used
         void intersection_assign(Bitset& l, Bitset& r);
     private:
         uint64_t* data;
