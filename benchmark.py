@@ -32,6 +32,14 @@ def benchmark_random(*args):
     G, parts = get_random_k_partite_graph(*args)
     return _benchmark(G, parts)
 
+def test_random(*args):
+    G, parts = get_random_k_partite_graph(*args)
+    it = KPartiteKClique_iter(G, parts)
+    a = sorted(list(it))
+    b = sorted([c for c in G.cliques_maximal() if len(c) == len(parts)])
+    assert a == b
+    print(len(a))
+
 def benchmark_sample(G):
     dic_parts = {v: v[0] for v in G.vertices()}
     parts = [[] for _ in dic_parts.keys()]
@@ -46,12 +54,9 @@ def _benchmark(*args):
     try:
         _ = next(it)
     except StopIteration:
-        pass
+        b = time()
+        return b-a, b-a
     b = time()
-    out1 = b - a
-    it = KPartiteKClique_iter(*args, benchmark=True)
-    _ = next(it)
-    a = time()
     sum(1 for _ in it)
-    b = time()
-    return out1, b - a
+    c = time()
+    return b-a, c - a

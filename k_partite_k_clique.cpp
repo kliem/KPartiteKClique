@@ -10,6 +10,8 @@
 
 const int ALIGNMENT = 8;
 
+// Bitsets
+
 void Bitset::intersection_assign(Bitset& l, Bitset& r){
     // Assumes all of same length.
     for (int i=0; i<limbs; i++)
@@ -27,7 +29,12 @@ inline int popcount(uint64_t i){
 }
 
 inline int Bitset::intersection_count(Bitset& r, int start, int stop){
+    /*
+    Count the number of set bits in ``this & r``
+    in ``range(start, stop)``.
+    */
     int counter = 0;
+    // The easy part, count any complete ``uint64_t``.
     for (int i=start/64 + 1; i< stop/64; i++)
         counter += popcount(data[i] & r[i]);
 
@@ -43,11 +50,13 @@ inline int Bitset::intersection_count(Bitset& r, int start, int stop){
     }
 
     if (start/64 == stop/64){
+        // The start limb is the end limb.
         counter += popcount(start_limb & end_limb);
     } else {
         if (stop/64 < limbs){
             counter += popcount(start_limb) + popcount(end_limb);
         } else {
+            // There is no end limb.
             counter += popcount(start_limb);
         }
     }
@@ -55,6 +64,9 @@ inline int Bitset::intersection_count(Bitset& r, int start, int stop){
 }
 
 bool Bitset::is_empty(int start, int stop){
+    /*
+    Currently not used.
+    */
     for (int i=start/64 + 1; i< stop/64; i++){
         if (data[i]) return false;
     }
@@ -72,6 +84,9 @@ bool Bitset::is_empty(int start, int stop){
 
     if (start/64 == stop/64)
         return 0 == start_limb & end_limb;
+
+    if (stop/64 == 0)
+        return 0 == start_limb;
 
     return 0 == start_limb | end_limb;
 }
@@ -145,6 +160,8 @@ Bitset::Bitset(const Bitset& obj){
     shallow = true;
 }
 
+// Vertex
+
 inline void KPartiteKClique::Vertex::set_weight(){
     int counter = 0;
     int tmp;
@@ -193,6 +210,8 @@ inline KPartiteKClique::Vertex* KPartiteKClique::KPartiteGraph::last_vertex(){
     return &v;
 }
 
+// KPartiteGraph
+
 bool KPartiteKClique::KPartiteGraph::is_valid(){
     for (int i=0; i<get_k(); i++){
         if (part_sizes[i] == 0)
@@ -225,7 +244,6 @@ KPartiteKClique::KPartiteGraph::~KPartiteGraph(){
     delete active_vertices;
     delete[] part_sizes;
 }
-
 
 bool KPartiteKClique::KPartiteGraph::select(KPartiteKClique::KPartiteGraph& next){
     Vertex* v = last_vertex();
@@ -270,6 +288,8 @@ bool KPartiteKClique::KPartiteGraph::select(KPartiteKClique::KPartiteGraph& next
 
     return true;
 }
+
+// KPartiteKClique
 
 bool KPartiteKClique::traceback(){
     while (current_depth >= 1){
