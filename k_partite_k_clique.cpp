@@ -33,37 +33,43 @@ inline uint64_t one_set_bit(int n){
 
 // Bitsets
 
-Bitset::Bitset(int n_vertices, bool fill){
+Bitset::Bitset(int n_vertices, int k, int* first_per_part, bool fill){
     /*
     Initalize bitset.
 
     Fill if ``fill``.
     */
-    allocate(n_vertices);
+    allocate(n_vertices, k, first_per_part);
     if (!fill)
         return;
 
     // Fill.
-    for(int i=0; i<n_vertices/64; i++){
+    for(int i=0; i<limbs; i++){
         data[i] = -1;
     }
     // Remove trailing bits.
-    if (n_vertices % 64)
-        data[n_vertices/64] = lower_n_bits(n_vertices % 64);
+    for(int i=0; i<k; i++){
+        int n_trailing_bits = (first_per_part[i+1] - first_per_part[i]) % 64;
+        if (n_trailing_bits)
+            data[first_limb_per_part[i+1] - 1] = lower_n_bits(n_trailing_bits);
+    }
 }
 
-Bitset::Bitset(const bool* set_bits, int n_vertices){
+Bitset::Bitset(const bool* set_bits, int n_vertices, int k, int* first_per_part){
     /*
     Initialize bitset with the given bits.
     */
-    allocate(n_vertices);
+    allocate(n_vertices, k, first_per_part);
 
-    for(int i=0; i < (n_vertices-1)/64 + 1; i++)
+    for(int i=0; i < limbs; i++)
         data[i] = 0;
 
+    int part = -1;
     for(int i=0; i<n_vertices; i++){
+        if (i == first_per_part[part + 1])
+            part += 1;
         if (set_bits[i])
-            set(i);
+            set(i, part);
     }
 }
 
@@ -73,6 +79,8 @@ Bitset::Bitset(const Bitset& obj){
 #endif
     data = obj.data;
     limbs = obj.limbs;
+    first_limb_per_part = obj.first_limb_per_part;
+    offset = obj.offset;
     shallow = true;
 }
 
@@ -81,7 +89,9 @@ Bitset::~Bitset(){
 #if MEM_DBG
         cout << "freeing a bitset" << (size_t) data << endl;
 #endif
-        free(data);
+        delete[] data;
+        delete[] first_limb_per_part;
+        delete[] offset;
     }
 }
 
@@ -91,127 +101,75 @@ void Bitset::intersection_assign(Bitset& l, Bitset& r){
         data[i] = l[i] & r[i];
 }
 
-inline int Bitset::intersection_count(Bitset& r, int start, int stop){
+inline int Bitset::intersection_count(Bitset& r, int part){
     /*
     Count the number of set bits in ``this & r``
     in ``range(start, stop)``.
     */
     int counter = 0;
-    // The easy part, count any complete ``uint64_t``.
-    for (int i=start/64 + 1; i< stop/64; i++)
+    int i;
+    for (i = first_limb_per_part[part]; i < first_limb_per_part[part + 1]; i++)
         counter += popcount(data[i] & r[i]);
-
-    uint64_t start_limb = data[start/64] & r[start/64];
-    if (start % 64)
-        // Remove the lower bits.
-        start_limb &= ~lower_n_bits(start % 64);
-
-    uint64_t end_limb;
-    if (stop/64 < limbs){
-        end_limb = data[stop/64] & r[stop/64];
-        if (stop % 64)
-            // Remove the upper bits.
-            end_limb &= lower_n_bits(stop % 64);
-    }
-
-    if (start/64 == stop/64){
-        // The start limb is the end limb.
-        counter += popcount(start_limb & end_limb);
-    } else {
-        if (stop/64 < limbs){
-            counter += popcount(start_limb) + popcount(end_limb);
-        } else {
-            // There is no end limb.
-            counter += popcount(start_limb);
-        }
-    }
     return counter;
 }
 
-inline bool Bitset::intersection_is_empty(Bitset& r, int start, int stop){
+inline bool Bitset::intersection_is_empty(Bitset& r, int part){
     /*
-    Count the number of set bits in ``this & r``
-    in ``range(start, stop)``.
+    Return whether the part is empty when intersected with ``r``.
     */
-    // The easy part, count any complete ``uint64_t``.
-    for (int i=start/64 + 1; i< stop/64; i++){
+    int i;
+    for (i = first_limb_per_part[part]; i < first_limb_per_part[part + 1]; i++){
         if (data[i] & r[i])
             return false;
     }
-
-    uint64_t start_limb = data[start/64] & r[start/64];
-    if (start % 64)
-        // Remove the lower bits.
-        start_limb &= ~lower_n_bits(start % 64);
-
-    uint64_t end_limb;
-    if (stop/64 < limbs){
-        end_limb = data[stop/64] & r[stop/64];
-        if (stop % 64)
-            // Remove the upper bits.
-            end_limb &= lower_n_bits(stop % 64);
-    }
-
-    if (start/64 == stop/64){
-        // The start limb is the end limb.
-        return (start_limb & end_limb == 0);
-    } else {
-        if (stop/64 < limbs){
-            return (0 == start_limb) && (end_limb == 0);
-        } else {
-            // There is no end limb.
-            return (start_limb == 0);
-        }
-    }
+    return true;
 }
 
-bool Bitset::is_empty(int start, int stop){
+bool Bitset::is_empty(int part){
     /*
     Currently not used.
     */
-    for (int i=start/64 + 1; i< stop/64; i++){
-        if (data[i]) return false;
+    int counter = 0;
+    int i;
+    for (i = first_limb_per_part[part]; i < first_limb_per_part[part + 1]; i++){
+        if (data[i])
+            return false;
     }
-
-    uint64_t start_limb = data[start/64];
-    if (start % 64)
-        start_limb &= ~(((uint64_t) -1) >> (64 - (start % 64)));
-
-    uint64_t end_limb;
-    if (stop/64 < limbs){
-        end_limb = data[stop/64];
-        if (stop % 64)
-            end_limb &= (((uint64_t) -1) >> (64 - (stop % 64)));
-    }
-
-    if (start/64 == stop/64)
-        return 0 == start_limb & end_limb;
-
-    if (stop/64 == 0)
-        return 0 == start_limb;
-
-    return 0 == start_limb | end_limb;
+    return true;
 }
 
-void Bitset::set(int index){
+void Bitset::set(int index, int part){
+    index += offset[part];
     data[index/64] |= one_set_bit(index % 64);
 }
 
-void Bitset::unset(int index){
+void Bitset::unset(int index, int part){
+    index += offset[part];
     data[index/64] &= ~one_set_bit(index % 64);
 }
 
-bool Bitset::has(int index){
+bool Bitset::has(int index, int part){
+    index += offset[part];
     return data[index/64] & one_set_bit(index % 64);
 }
 
-void Bitset::allocate(int n_vertices){
+void Bitset::allocate(int n_vertices, int k, int* first_per_part){
     shallow = false;
-    limbs = ((n_vertices-1)/(ALIGNMENT*8) + 1)*(ALIGNMENT/8);
+    offset = new int[k+1];
+    first_limb_per_part = new int[k+1];
+    first_limb_per_part[0] = 0;
+    offset[0] = 0;
+    for (int i = 0; i < k; i++){
+        int partsize = first_per_part[i+1] - first_per_part[i];
+        int n_limbs = (partsize - 1)/64 + 1;
+        first_limb_per_part[i+1] = first_limb_per_part[i] + n_limbs;
+        offset[i+1] = 64*n_limbs - partsize + offset[i];
+    }
+    limbs = first_limb_per_part[k];
 #if MEM_DBG
     cout << "limbs " << limbs << " n_vertices " << n_vertices << endl;
 #endif
-    data = (uint64_t*) aligned_alloc(ALIGNMENT, limbs*8);
+    data = new uint64_t[limbs];
 }
 
 
@@ -227,21 +185,23 @@ inline bool KPartiteKClique::Vertex::set_weight(){
     int counter = 0;
     int tmp;
     Bitset& active_vertices = get_active_vertices();
-    if (!active_vertices.has(index)){
+    if (!active_vertices.has(index, part)){
         weight = 0;
         return false;
     }
-    if (problem->current_depth > 5){
+    /*
+    if (problem->current_depth > 10){
         weight = 1;
         return false;
     }
+    */
     for (int i=0; i<get_k(); i++){
         tmp = intersection_count(active_vertices, i);
         counter += tmp;
         if (!tmp){
             // This vertex would not allow for a k-clique anymore.
             weight = 0;
-            active_vertices.unset(index);
+            active_vertices.unset(index, part);
             return true;
         }
     }
@@ -262,7 +222,7 @@ inline bool KPartiteKClique::Vertex::is_valid(){
     int counter = 0;
     int tmp;
     Bitset& active_vertices = get_active_vertices();
-    if (!active_vertices.has(index)){
+    if (!active_vertices.has(index, part)){
         return false;
     }
     /*
@@ -282,7 +242,7 @@ inline bool KPartiteKClique::Vertex::is_valid(){
 inline void KPartiteKClique::KPartiteGraph::pop_last_vertex(){
     Vertex& v = vertices.back();
     part_sizes[v.part] -= 1;
-    active_vertices->unset(v.index);
+    active_vertices->unset(v.index, v.part);
     vertices.pop_back();
 }
 
@@ -327,7 +287,7 @@ bool KPartiteKClique::KPartiteGraph::is_valid(){
 }
 
 void KPartiteKClique::KPartiteGraph::init(KPartiteKClique* problem, bool fill){
-    active_vertices = new Bitset(problem->n_vertices, fill);
+    active_vertices = new Bitset(problem->n_vertices, problem->k, problem->parts, fill);
     part_sizes = new int[problem->k];
     for (int i=0; i < problem->k; i++){
         part_sizes[i] = problem->parts[i+1] - problem->parts[i];
