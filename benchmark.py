@@ -42,9 +42,11 @@ def test_random(*args):
 
 def benchmark_sample(G):
     dic_parts = {v: v[0] for v in G.vertices()}
-    parts = [[] for _ in dic_parts.keys()]
+    values = set(dic_parts.values())
+    parts = [[] for _ in values]
     for vertex in dic_parts:
         parts[dic_parts[vertex]].append(vertex)
+
     return _benchmark(G, parts)
 
 def _benchmark(*args):

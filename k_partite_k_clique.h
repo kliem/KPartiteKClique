@@ -23,6 +23,7 @@ class Bitset {
         bool has(int index);
         void set(int index);
         int intersection_count(Bitset& r, int start, int stop);
+        bool intersection_is_empty(Bitset& r, int start, int stop);
         bool is_empty(int start, int stop);  // currently not used
         void intersection_assign(Bitset& l, Bitset& r);
     private:
@@ -78,7 +79,8 @@ class KPartiteKClique {
                         delete bitset;
                     }
                 }
-                void set_weight();
+                bool set_weight();
+                bool is_valid();
                 int weight;
                 void intersection(Bitset& c, Bitset& r){
                     // c = this & r.
@@ -87,8 +89,14 @@ class KPartiteKClique {
                 inline int intersection_count(Bitset& r, int start, int stop){
                     return bitset->intersection_count(r, start, stop);
                 }
+                inline bool intersection_is_empty(Bitset& r, int start, int stop){
+                    return bitset->intersection_is_empty(r, start, stop);
+                }
                 inline int intersection_count(Bitset& r, int part){
                     return intersection_count(r, get_parts()[part], get_parts()[part+1]);
+                }
+                inline bool intersection_is_empty(Bitset& r, int part){
+                    return intersection_is_empty(r, get_parts()[part], get_parts()[part+1]);
                 }
 
             private:
@@ -111,16 +119,18 @@ class KPartiteKClique {
             Vertex* last_vertex();
             void pop_last_vertex();
             bool is_valid();
-            inline void set_weights(){
+            inline bool set_weights(){
+                bool new_knowledge = false;
                 for(Vertex& v: vertices){
 #if DBG
                     cout << "set weight of " << v->index << endl;
 #endif
-                    v.set_weight();
+                    new_knowledge |= v.set_weight();
 #if DBG
                     cout << "weight is " << v->weight << endl;
 #endif
                 }
+                return new_knowledge;
             }
             bool select(KPartiteGraph& next);
             inline int count_active_vertices(int start, int stop){
