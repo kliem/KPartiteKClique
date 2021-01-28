@@ -47,22 +47,25 @@ def KPartiteKClique_iter(G, parts, benchmark=False):
         i -= 1
         return i
 
+    cdef int* id_to_part_cached = <int*> mem.allocarray(n, sizeof(int))
+    for i in range(n):
+        id_to_part_cached[i] = id_to_part(i)
+
     def id_to_vertex(index):
-        i = id_to_part(index)
+        i = id_to_part_cached[index]
         return parts[i][index - first_per_part[i]]
 
-    cdef dict vertex_to_id = {id_to_vertex(i):i for i in range(n)}
+    cdef dict vertex_to_id = {id_to_vertex(i): i for i in range(n)}
 
     cdef int ui, vi
 
-    for u in G:
+    for u, v in G.edge_iterator(sort_vertices=False, labels=False):
         ui = vertex_to_id[u]
-        for v in G.neighbors(u):
-            vi = vertex_to_id[v]
-            if id_to_part(ui) == id_to_part(vi):
-                raise ValueError("not a k-partite graph")
-            incidences[ui][vi] = True
-            incidences[vi][ui] = True
+        vi = vertex_to_id[v]
+        if id_to_part_cached[ui] == id_to_part_cached[vi]:
+            raise ValueError("not a k-partite graph")
+        incidences[ui][vi] = True
+        incidences[vi][ui] = True
 
     if benchmark:
         yield []
