@@ -108,7 +108,9 @@ inline int Bitset::intersection_count(Bitset& r, int part){
     */
     int counter = 0;
     int i;
-    for (i = first_limb_per_part[part]; i < first_limb_per_part[part + 1]; i++)
+    int start = first_limb_per_part[part];
+    int stop = first_limb_per_part[part + 1];
+    for (i = start; i < stop; i++)
         counter += popcount(data[i] & r[i]);
     return counter;
 }
@@ -118,7 +120,9 @@ inline bool Bitset::intersection_is_empty(Bitset& r, int part){
     Return whether the part is empty when intersected with ``r``.
     */
     int i;
-    for (i = first_limb_per_part[part]; i < first_limb_per_part[part + 1]; i++){
+    int start = first_limb_per_part[part];
+    int stop = first_limb_per_part[part + 1];
+    for (i = start; i < stop; i++)
         if (data[i] & r[i])
             return false;
     }
@@ -131,7 +135,9 @@ bool Bitset::is_empty(int part){
     */
     int counter = 0;
     int i;
-    for (i = first_limb_per_part[part]; i < first_limb_per_part[part + 1]; i++){
+    int start = first_limb_per_part[part];
+    int stop = first_limb_per_part[part + 1];
+    for (i = start; i < stop; i++)
         if (data[i])
             return false;
     }
