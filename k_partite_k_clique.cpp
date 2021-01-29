@@ -122,7 +122,7 @@ inline bool Bitset::intersection_is_empty(Bitset& r, int part){
     int i;
     int start = first_limb_per_part[part];
     int stop = first_limb_per_part[part + 1];
-    for (i = start; i < stop; i++)
+    for (i = start; i < stop; i++){
         if (data[i] & r[i])
             return false;
     }
@@ -137,7 +137,7 @@ bool Bitset::is_empty(int part){
     int i;
     int start = first_limb_per_part[part];
     int stop = first_limb_per_part[part + 1];
-    for (i = start; i < stop; i++)
+    for (i = start; i < stop; i++){
         if (data[i])
             return false;
     }
