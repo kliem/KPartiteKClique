@@ -189,12 +189,10 @@ inline bool KPartiteKClique::Vertex::set_weight(){
         weight = 0;
         return false;
     }
-    /*
-    if (problem->current_depth > 10){
+    if (problem->current_depth > 5){
         weight = 1;
         return false;
     }
-    */
     for (int i=0; i<get_k(); i++){
         tmp = intersection_count(active_vertices, i);
         counter += tmp;
