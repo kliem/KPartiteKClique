@@ -17,7 +17,7 @@ This approach goes as follows:
 3. Remove the vertex and repeat.
 
 The crucial ingredient to this algorithm is the pivot strategy when
-selection the vertex in 1.
+selecting the vertex in 1.
 Both references above agree in this strategy and the more recent
 publication adds the use of bitsets:
 
@@ -25,7 +25,7 @@ publication adds the use of bitsets:
 
 However, this approach seems to perform only well on graphs with
 somewhat equally distributed edges.
-In this case the degrees of the vertices does not differ significantly.
+In this case the degrees of the vertices do not differ significantly.
 
 Instead we use the pivot selection strategy described in
 
