@@ -23,8 +23,6 @@ class Bitset {
         bool has(int index);
         void set(int index);
         int intersection_count(Bitset& r, int start, int stop);
-        bool intersection_is_empty(Bitset& r, int start, int stop);
-        bool is_empty(int start, int stop);  // currently not used
         void intersection_assign(Bitset& l, Bitset& r);
     private:
         uint64_t* data;
@@ -80,7 +78,6 @@ class KPartiteKClique {
                     }
                 }
                 bool set_weight();
-                bool is_valid();
                 int weight;
                 void intersection(Bitset& c, Bitset& r){
                     // c = this & r.
@@ -89,14 +86,8 @@ class KPartiteKClique {
                 inline int intersection_count(Bitset& r, int start, int stop){
                     return bitset->intersection_count(r, start, stop);
                 }
-                inline bool intersection_is_empty(Bitset& r, int start, int stop){
-                    return bitset->intersection_is_empty(r, start, stop);
-                }
                 inline int intersection_count(Bitset& r, int part){
                     return intersection_count(r, get_parts()[part], get_parts()[part+1]);
-                }
-                inline bool intersection_is_empty(Bitset& r, int part){
-                    return intersection_is_empty(r, get_parts()[part], get_parts()[part+1]);
                 }
 
             private:

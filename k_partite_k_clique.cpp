@@ -128,71 +128,6 @@ inline int Bitset::intersection_count(Bitset& r, int start, int stop){
     return counter;
 }
 
-inline bool Bitset::intersection_is_empty(Bitset& r, int start, int stop){
-    /*
-    Count the number of set bits in ``this & r``
-    in ``range(start, stop)``.
-    */
-    // The easy part, count any complete ``uint64_t``.
-    for (int i=start/64 + 1; i< stop/64; i++){
-        if (data[i] & r[i])
-            return false;
-    }
-
-    uint64_t start_limb = data[start/64] & r[start/64];
-    if (start % 64)
-        // Remove the lower bits.
-        start_limb &= ~lower_n_bits(start % 64);
-
-    uint64_t end_limb;
-    if (stop/64 < limbs){
-        end_limb = data[stop/64] & r[stop/64];
-        if (stop % 64)
-            // Remove the upper bits.
-            end_limb &= lower_n_bits(stop % 64);
-    }
-
-    if (start/64 == stop/64){
-        // The start limb is the end limb.
-        return ((start_limb & end_limb) == 0);
-    } else {
-        if (stop/64 < limbs){
-            return (0 == start_limb) && (end_limb == 0);
-        } else {
-            // There is no end limb.
-            return (start_limb == 0);
-        }
-    }
-}
-
-bool Bitset::is_empty(int start, int stop){
-    /*
-    Currently not used.
-    */
-    for (int i=start/64 + 1; i< stop/64; i++){
-        if (data[i]) return false;
-    }
-
-    uint64_t start_limb = data[start/64];
-    if (start % 64)
-        start_limb &= ~(((uint64_t) -1) >> (64 - (start % 64)));
-
-    uint64_t end_limb = 0;
-    if (stop/64 < limbs){
-        end_limb = data[stop/64];
-        if (stop % 64)
-            end_limb &= (((uint64_t) -1) >> (64 - (stop % 64)));
-    }
-
-    if (start/64 == stop/64)
-        return 0 == (start_limb & end_limb);
-
-    if (stop/64 == 0)
-        return 0 == start_limb;
-
-    return 0 == (start_limb | end_limb);
-}
-
 void Bitset::set(int index){
     data[index/64] |= one_set_bit(index % 64);
 }
@@ -249,31 +184,6 @@ inline bool KPartiteKClique::Vertex::set_weight(){
     return false;
 }
 
-inline bool KPartiteKClique::Vertex::is_valid(){
-    // The weight is the number of vertices that are still available when
-    // selecting this vertex.
-    // However, when selecting the vertex no longer allows a k-clique,
-    // the weight is always set to 0.
-    //
-    // Return ``true`` if and only if this vertex is newly removed.
-    return true;
-    if (problem->current_depth <= 10)
-        return true;
-    Bitset& active_vertices = get_active_vertices();
-    if (!active_vertices.has(index)){
-        return false;
-    }
-    /*
-    this->set_weight();
-    return weight != 0;
-    */
-    for (int i=0; i<get_k(); i++){
-        if (intersection_is_empty(active_vertices, i))
-            return false;
-    }
-    return true;
-}
-
 
 // KPartiteGraph
 
@@ -293,8 +203,6 @@ inline KPartiteKClique::Vertex* KPartiteKClique::KPartiteGraph::last_vertex(){
     if (!vertices.size())
         return NULL;
     Vertex& v = vertices.back();
-    if (v.weight && !v.is_valid())
-        v.weight = 0;
 
     // Remove all vertices,
     // that are no longer
@@ -307,8 +215,6 @@ inline KPartiteKClique::Vertex* KPartiteKClique::KPartiteGraph::last_vertex(){
         if (!vertices.size())
             return NULL;
         v = vertices.back();
-        if (v.weight && !v.is_valid())
-            v.weight = 0;
     }
 #if DBG
     cout << "last vertex is " << v.index << " with weight " << v.weight << endl;
