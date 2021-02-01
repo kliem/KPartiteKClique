@@ -1,6 +1,17 @@
 # KPartiteKClique
 Iterate over all k-cliques of a k-partite graph
 
+# Building
+
+This should just build fine using `g++` and probably also with other compilers.
+
+About 25 percent performance gain can achieved using build in popcount.
+
+To use it, you can compile with `-mpopcnt` or `-march=native`.
+The first will lead to illegal instructions, if not available.
+The second is safe, if the compiler supports it.
+In particular the GCC suite supports it.
+
 # Algorithm
 
 The algorithm is described [here](ALGORITHM.md)
