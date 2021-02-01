@@ -106,7 +106,7 @@ inline int Bitset::intersection_count(Bitset& r, int start, int stop){
         // Remove the lower bits.
         start_limb &= ~lower_n_bits(start % 64);
 
-    uint64_t end_limb;
+    uint64_t end_limb = 0;
     if (stop/64 < limbs){
         end_limb = data[stop/64] & r[stop/64];
         if (stop % 64)
@@ -154,7 +154,7 @@ inline bool Bitset::intersection_is_empty(Bitset& r, int start, int stop){
 
     if (start/64 == stop/64){
         // The start limb is the end limb.
-        return (start_limb & end_limb == 0);
+        return ((start_limb & end_limb) == 0);
     } else {
         if (stop/64 < limbs){
             return (0 == start_limb) && (end_limb == 0);
@@ -177,7 +177,7 @@ bool Bitset::is_empty(int start, int stop){
     if (start % 64)
         start_limb &= ~(((uint64_t) -1) >> (64 - (start % 64)));
 
-    uint64_t end_limb;
+    uint64_t end_limb = 0;
     if (stop/64 < limbs){
         end_limb = data[stop/64];
         if (stop % 64)
@@ -185,12 +185,12 @@ bool Bitset::is_empty(int start, int stop){
     }
 
     if (start/64 == stop/64)
-        return 0 == start_limb & end_limb;
+        return 0 == (start_limb & end_limb);
 
     if (stop/64 == 0)
         return 0 == start_limb;
 
-    return 0 == start_limb | end_limb;
+    return 0 == (start_limb | end_limb);
 }
 
 void Bitset::set(int index){
@@ -259,8 +259,6 @@ inline bool KPartiteKClique::Vertex::is_valid(){
     return true;
     if (problem->current_depth <= 10)
         return true;
-    int counter = 0;
-    int tmp;
     Bitset& active_vertices = get_active_vertices();
     if (!active_vertices.has(index)){
         return false;
