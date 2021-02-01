@@ -1,6 +1,10 @@
 # KPartiteKClique
 Iterate over all k-cliques of a k-partite graph
 
+# Algorithm
+
+The algorithm is described [here](ALGORITHM.md)
+
 # See also
 
 The pivot selection of this algorithm was first described in
