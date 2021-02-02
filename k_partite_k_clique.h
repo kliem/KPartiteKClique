@@ -3,15 +3,12 @@
 
 #include <cstdint>
 #include <vector>
-#include <iostream>
 #include <cassert>
 using namespace std;
-#define DBG 0
 
 class Bitset;
 
 class Bitset {
-
     public:
         Bitset(int n_vertices, bool fill=false);
         Bitset(const bool* set_bits, int n_vertices);
@@ -29,7 +26,7 @@ class Bitset {
         uint64_t* data;
         int limbs;
         void allocate(int n_vertices);
-        uint64_t& operator[](int i){ return data[i]; }
+        inline uint64_t& operator[](int i){ return data[i]; }
 };
 
 class KPartiteKClique {
@@ -88,15 +85,8 @@ class KPartiteKClique {
             bool is_valid();
             inline bool set_weights(){
                 bool new_knowledge = false;
-                for(Vertex& v: vertices){
-#if DBG
-                    cout << "set weight of " << v->index << endl;
-#endif
+                for(Vertex& v: vertices)
                     new_knowledge |= v.set_weight();
-#if DBG
-                    cout << "weight is " << v->weight << endl;
-#endif
-                }
                 return new_knowledge;
             }
             bool select(KPartiteGraph& next);

@@ -5,8 +5,6 @@
 #include "k_partite_k_clique.h"
 
 #include <algorithm>
-#include <cstdlib>
-#include <cassert>
 
 // Bitset helpers.
 
@@ -222,17 +220,11 @@ inline KPartiteKClique::Vertex* KPartiteKClique::KPartiteGraph::last_vertex(){
     // that are no longer
     // a valid choice.
     while (!v.weight){
-#if DBG
-        cout << "actual remove of vertex " << v.index << endl;
-#endif
         pop_last_vertex();
         if (!vertices.size())
             return NULL;
         v = vertices.back();
     }
-#if DBG
-    cout << "last vertex is " << v.index << " with weight " << v.weight << endl;
-#endif
     return &v;
 }
 
@@ -276,9 +268,6 @@ bool KPartiteKClique::KPartiteGraph::select(KPartiteKClique::KPartiteGraph& next
     // select v.
     problem->_k_clique[v->part] = v->index;
     intersection(*next.active_vertices, *v, *active_vertices);
-#if DBG
-    cout << "select the vertex " << v->index << endl;
-#endif
 
     int part = v->part;
 
@@ -308,16 +297,10 @@ bool KPartiteKClique::KPartiteGraph::select(KPartiteKClique::KPartiteGraph& next
     problem->current_depth += 1;
 
     next.set_weights();
-    if (problem->current_depth < 5 && next.set_weights()){
+    if (problem->current_depth < 5 && next.set_weights())
         next.set_weights();
-    }
-    sort(next.vertices.begin(), next.vertices.end());
 
-#if DBG
-    for (Vertex& v1: next.vertices){
-        cout << v1.index << " " << v1.weight << endl;
-    }
-#endif
+    sort(next.vertices.begin(), next.vertices.end());
 
     return true;
 }
@@ -340,43 +323,21 @@ bool KPartiteKClique::next(){
     */
     while (true){
         if (current_depth < k-1){
-#if DBG
-            cout << current_depth << " depth" << endl;
-#endif
             if (!current_graph().select(next_graph())){
-#if DBG
-                cout << "need to trace back" << endl;
-#endif
                 if (!traceback())
                     // Out of options.
                     return false;
             }
         } else {
-#if DBG
-            cout << "to the end" << endl;
-#endif
             Vertex* vpt = current_graph().last_vertex();
             if (!vpt){
-#if DBG
-                cout << "found no vertex" << endl;
-#endif
                 if (!traceback()){
-#if DBG
-                    cout << "out of options" << endl;
-#endif
                     // Out of options.
                     return false;
                 }
             } else {
-#if DBG
-                cout << "found something" << endl;
-                cout << "it is vertex " << vpt->index << endl;
-#endif
                 _k_clique[vpt->part] = vpt->index;
                 current_graph().pop_last_vertex();
-#if DBG
-                cout << "will return true" << endl;
-#endif
                 return true;
             }
         }
