@@ -8,7 +8,22 @@
 #include <cstdlib>
 #include <cassert>
 
-const int ALIGNMENT = 8;
+#if __AVX512F__
+    #include <immintrin.h>
+    const int ALIGNMENT = 64;
+    #define STEP 8
+#elif __AVX2__
+    #include <immintrin.h>
+    const int ALIGNMENT = 32;
+    #define STEP 4
+#elif __SSE2__
+    #include <emmintrin.h>
+    const int ALIGNMENT = 16;
+    #define STEP 2
+#else
+    const int ALIGNMENT = 8;
+    #define STEP 1
+#endif
 
 // Bitset helpers.
 
@@ -71,10 +86,28 @@ Bitset::~Bitset(){
     free(data);
 }
 
-void Bitset::intersection_assign(Bitset& l, Bitset& r){
+inline void Bitset::intersection_assign(Bitset& l, Bitset& r){
     // Assumes all of same length.
-    for (int i=0; i<limbs; i++)
+    for (int i=0; i<limbs; i += STEP){
+#if __AVX512F__
+        __m512i A = _mm512_load_si512((const __m512i*)&l[i]);
+        __m512i B = _mm512_load_si512((const __m512i*)&r[i]);
+        __m512i D = _mm512_and_si512(A, B);
+        _mm512_store_si512((__m512i*)&data[i], D);
+#elif __AVX2__
+        __m256i A = _mm256_load_si256((const __m256i*)&l[i]);
+        __m256i B = _mm256_load_si256((const __m256i*)&r[i]);
+        __m256i D = _mm256_and_si256(A, B);
+        _mm256_store_si256((__m256i*)&data[i], D);
+#elif __SSE2__
+        __m128i A = _mm_load_si128((const __m128i*)&l[i]);
+        __m128i B = _mm_load_si128((const __m128i*)&r[i]);
+        __m128i D = _mm_and_si128(A, B);
+        _mm_store_si128((__m128i*)&data[i], D);
+#else
         data[i] = l[i] & r[i];
+#endif
+    }
 }
 
 inline int Bitset::intersection_count(Bitset& r, int start, int stop){
@@ -114,27 +147,28 @@ inline int Bitset::intersection_count(Bitset& r, int start, int stop){
     return counter;
 }
 
-void Bitset::set(int index){
+inline void Bitset::set(int index){
     data[index/64] |= one_set_bit(index % 64);
 }
 
-void Bitset::unset(int index){
+inline void Bitset::unset(int index){
     data[index/64] &= ~one_set_bit(index % 64);
 }
 
-bool Bitset::has(int index){
+inline bool Bitset::has(int index){
     return data[index/64] & one_set_bit(index % 64);
 }
 
 void Bitset::allocate(int n_vertices){
-    limbs = ((n_vertices-1)/(ALIGNMENT*8) + 1)*(ALIGNMENT/8);
-    data = (uint64_t*) aligned_alloc(ALIGNMENT, limbs*8);
+    limbs = ((n_vertices-1)/64+ 1);
+    int alloc_limbs = ((n_vertices-1)/(ALIGNMENT*8) + 1)*(ALIGNMENT/8);
+    data = (uint64_t*) aligned_alloc(ALIGNMENT, alloc_limbs*8);
 }
 
 
 // Vertex
 
-KPartiteKClique::Vertex::Vertex(){
+inline KPartiteKClique::Vertex::Vertex(){
     is_shallow = true;
 }
 
@@ -201,7 +235,6 @@ inline bool KPartiteKClique::Vertex::set_weight(){
 }
 
 
-
 // KPartiteGraph
 
 inline void KPartiteKClique::KPartiteGraph::pop_last_vertex(){
@@ -239,7 +272,7 @@ inline KPartiteKClique::Vertex* KPartiteKClique::KPartiteGraph::last_vertex(){
     return &v;
 }
 
-bool KPartiteKClique::KPartiteGraph::is_valid(){
+inline bool KPartiteKClique::KPartiteGraph::is_valid(){
     for (int i=0; i<get_k(); i++){
         if (part_sizes[i] == 0)
             return false;

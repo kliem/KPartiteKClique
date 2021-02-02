@@ -16,7 +16,7 @@ class Bitset {
         Bitset(int n_vertices, bool fill=false);
         Bitset(const bool* set_bits, int n_vertices);
         Bitset(const Bitset& obj){
-            // The code does not create shallow copies of bitsets.
+            // Not defined.
             assert(0);
         }
         ~Bitset();
@@ -66,9 +66,9 @@ class KPartiteKClique {
                 bool is_shallow;
                 Bitset* bitset;
                 KPartiteKClique* problem;
-                const int* get_parts() { return problem->parts; }
-                const int get_k() { return problem->k; }
-                Bitset& get_active_vertices() { return *(problem->current_graph()).active_vertices; }
+                inline const int* get_parts() { return problem->parts; }
+                inline const int get_k() { return problem->k; }
+                inline Bitset& get_active_vertices() { return *(problem->current_graph()).active_vertices; }
         };
 
     class KPartiteGraph {
@@ -77,6 +77,10 @@ class KPartiteKClique {
             Bitset* active_vertices;
 
             KPartiteGraph();
+            KPartiteGraph(const KPartiteGraph& obj){
+                // Not defined.
+                assert(0);
+            }
             void init(KPartiteKClique* problem, bool fill);
             ~KPartiteGraph();
             Vertex* last_vertex();
@@ -96,17 +100,11 @@ class KPartiteKClique {
                 return new_knowledge;
             }
             bool select(KPartiteGraph& next);
-            inline int count_active_vertices(int start, int stop){
-                return active_vertices->intersection_count(*active_vertices, start, stop);
-            }
-            inline int count_active_vertices(int part){
-                return count_active_vertices(get_parts()[part], get_parts()[part+1]);
-            }
         private:
-            const int* get_parts() { assert(problem); return problem->parts; }
-            const int get_k() { assert(problem); return problem->k; }
-            KPartiteGraph& current_graph(){ return problem->current_graph(); }
-            KPartiteGraph& next_graph(){ return problem->next_graph(); }
+            inline const int* get_parts() { assert(problem); return problem->parts; }
+            inline const int get_k() { assert(problem); return problem->k; }
+            inline KPartiteGraph& current_graph(){ return problem->current_graph(); }
+            inline KPartiteGraph& next_graph(){ return problem->next_graph(); }
             int* part_sizes;
             KPartiteKClique* problem;
     };
@@ -114,6 +112,10 @@ class KPartiteKClique {
     public:
         const int* k_clique(){ return _k_clique; }
         KPartiteKClique(const bool* const* incidences, const int n_vertices, const int* first_per_part, const int k);
+        KPartiteKClique(const KPartiteKClique& obj){
+            // Not defined.
+            assert(0);
+        }
         KPartiteKClique();
         ~KPartiteKClique();
         bool next();
