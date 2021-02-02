@@ -67,22 +67,8 @@ Bitset::Bitset(const bool* set_bits, int n_vertices){
     }
 }
 
-Bitset::Bitset(const Bitset& obj){
-#if MEM_DBG
-    cout << "create a shallow bitset" << endl;
-#endif
-    data = obj.data;
-    limbs = obj.limbs;
-    shallow = true;
-}
-
 Bitset::~Bitset(){
-    if (!shallow){
-#if MEM_DBG
-        cout << "freeing a bitset" << (size_t) data << endl;
-#endif
-        free(data);
-    }
+    free(data);
 }
 
 void Bitset::intersection_assign(Bitset& l, Bitset& r){
@@ -141,16 +127,46 @@ bool Bitset::has(int index){
 }
 
 void Bitset::allocate(int n_vertices){
-    shallow = false;
     limbs = ((n_vertices-1)/(ALIGNMENT*8) + 1)*(ALIGNMENT/8);
-#if MEM_DBG
-    cout << "limbs " << limbs << " n_vertices " << n_vertices << endl;
-#endif
     data = (uint64_t*) aligned_alloc(ALIGNMENT, limbs*8);
 }
 
 
 // Vertex
+
+KPartiteKClique::Vertex::Vertex(){
+    is_shallow = true;
+}
+
+inline KPartiteKClique::Vertex::Vertex(const Vertex& obj){
+    // Make a shallow copy.
+    bitset = obj.bitset;
+    is_shallow = true;
+    weight = obj.weight;
+    part = obj.part;
+    index = obj.index;
+    problem = obj.problem;
+}
+
+void KPartiteKClique::Vertex::init(KPartiteKClique* problem, const bool* incidences, int n_vertices, int part, int index){
+    bitset = new Bitset(incidences, n_vertices);
+    is_shallow = false;
+    weight = -1;
+    this->part = part;
+    this->index = index;
+    this->problem = problem;
+
+    // Set each vertex adjacent to itself.
+    // This is important, so that after selecting a vertex
+    // the corresponding part will have one ``active_vertex``.
+    bitset->set(index);
+};
+
+inline KPartiteKClique::Vertex::~Vertex(){
+    if (!is_shallow){
+        delete bitset;
+    }
+}
 
 inline bool KPartiteKClique::Vertex::set_weight(){
     // The weight is the number of vertices that are still available when
@@ -183,6 +199,7 @@ inline bool KPartiteKClique::Vertex::set_weight(){
     weight = counter;
     return false;
 }
+
 
 
 // KPartiteGraph
@@ -246,9 +263,6 @@ KPartiteKClique::KPartiteGraph::KPartiteGraph(){
 }
 
 KPartiteKClique::KPartiteGraph::~KPartiteGraph(){
-#if MEM_DBG
-    cout << "deleting KPartiteGraph " << problem->k << (size_t) active_vertices << endl;
-#endif
     delete active_vertices;
     delete[] part_sizes;
 }
@@ -264,7 +278,7 @@ bool KPartiteKClique::KPartiteGraph::select(KPartiteKClique::KPartiteGraph& next
 
     // select v.
     problem->_k_clique[v->part] = v->index;
-    v->intersection(*next.active_vertices, *active_vertices);
+    intersection(*next.active_vertices, *v, *active_vertices);
 #if DBG
     cout << "select the vertex " << v->index << endl;
 #endif
@@ -411,9 +425,6 @@ KPartiteKClique::KPartiteKClique(const bool* const* incidences, const int n_vert
 
 
 KPartiteKClique::~KPartiteKClique(){
-#if MEM_DBG
-    cout << "hello" << endl;
-#endif
     delete[] _k_clique;
     delete[] parts;
     delete[] all_vertices;

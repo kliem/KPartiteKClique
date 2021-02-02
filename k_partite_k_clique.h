@@ -7,7 +7,6 @@
 #include <cassert>
 using namespace std;
 #define DBG 0
-#define MEM_DBG 0
 
 class Bitset;
 
@@ -16,9 +15,11 @@ class Bitset {
     public:
         Bitset(int n_vertices, bool fill=false);
         Bitset(const bool* set_bits, int n_vertices);
-        Bitset(const Bitset& obj);
+        Bitset(const Bitset& obj){
+            // The code does not create shallow copies of bitsets.
+            assert(0);
+        }
         ~Bitset();
-        int first(int start=0);  // curently neither used nor defined
         void unset(int index);
         bool has(int index);
         void set(int index);
@@ -29,60 +30,31 @@ class Bitset {
         int limbs;
         void allocate(int n_vertices);
         uint64_t& operator[](int i){ return data[i]; }
-        bool shallow;
 };
 
 class KPartiteKClique {
         class Vertex {
-            friend bool operator<(const Vertex& l, const Vertex& r){
+            inline friend bool operator<(const Vertex& l, const Vertex& r){
                 // The lower the weight, the higher the obstruction when
                 // selecting this vertex.
                 // We want to select vertices with high obstruction first
                 // and put the last (to be popped first).
                 return l.weight > r.weight;
             }
+            inline friend void intersection(Bitset& c, Vertex& l, Bitset& r){
+                c.intersection_assign(*(l.bitset), r);
+            }
+
             public:
                 int index;  // The index in the original graph.
                 int part;  // The part in the orginal graph.
-                Vertex(){
-                    is_shallow = true;
-                }
-                void init(KPartiteKClique* problem, const bool* incidences, int n_vertices, int part, int index){
-                    bitset = new Bitset(incidences, n_vertices);
-                    is_shallow = false;
-                    weight = -1;
-                    this->part = part;
-                    this->index = index;
-                    this->problem = problem;
+                int weight;  // The higher, the higher the likelihood of a k-clique with this vertex.
 
-                    // Set each vertex adjacent to itself.
-                    // This is important, so that after selecting a vertex
-                    // the corresponding part will have one ``active_vertex``.
-                    bitset->set(index);
-                };
-                Vertex(const Vertex& obj){
-                    // Make a shallow copy.
-                    bitset = obj.bitset;
-                    is_shallow = true;
-                    weight = obj.weight;
-                    part = obj.part;
-                    index = obj.index;
-                    problem = obj.problem;
-                }
-                ~Vertex(){
-                    if (!is_shallow){
-#if MEM_DBG
-                        cout << "deleteing a vertex" << (size_t) bitset << endl;
-#endif
-                        delete bitset;
-                    }
-                }
+                Vertex();
+                Vertex(const Vertex& obj);
+                void init(KPartiteKClique* problem, const bool* incidences, int n_vertices, int part, int index);
+                ~Vertex();
                 bool set_weight();
-                int weight;
-                void intersection(Bitset& c, Bitset& r){
-                    // c = this & r.
-                    c.intersection_assign(*bitset, r);
-                }
                 inline int intersection_count(Bitset& r, int start, int stop){
                     return bitset->intersection_count(r, start, stop);
                 }
