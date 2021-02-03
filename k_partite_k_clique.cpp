@@ -110,15 +110,15 @@ inline int Bitset::intersection_count(Bitset& r, int start, int stop){
     return counter;
 }
 
-inline void Bitset::set(int index){
+void Bitset::set(int index){
     data[index/64] |= one_set_bit(index % 64);
 }
 
-inline void Bitset::unset(int index){
+void Bitset::unset(int index){
     data[index/64] &= ~one_set_bit(index % 64);
 }
 
-inline bool Bitset::has(int index){
+bool Bitset::has(int index){
     return data[index/64] & one_set_bit(index % 64);
 }
 
@@ -130,7 +130,7 @@ void Bitset::allocate(int n_vertices){
 
 // Vertex
 
-inline KPartiteKClique::Vertex::Vertex(){
+KPartiteKClique::Vertex::Vertex(){
     is_shallow = true;
 }
 
@@ -156,7 +156,7 @@ void KPartiteKClique::Vertex::init(KPartiteKClique* problem, const bool* inciden
     // This is important, so that after selecting a vertex
     // the corresponding part will have one ``active_vertex``.
     bitset->set(index);
-};
+}
 
 inline KPartiteKClique::Vertex::~Vertex(){
     if (!is_shallow){
@@ -229,6 +229,9 @@ inline KPartiteKClique::Vertex* KPartiteKClique::KPartiteGraph::last_vertex(){
 }
 
 inline bool KPartiteKClique::KPartiteGraph::is_valid(){
+    /*
+    Return if none of the parts are empty.
+    */
     for (int i=0; i<get_k(); i++){
         if (part_sizes[i] == 0)
             return false;
@@ -257,6 +260,12 @@ KPartiteKClique::KPartiteGraph::~KPartiteGraph(){
 }
 
 bool KPartiteKClique::KPartiteGraph::select(KPartiteKClique::KPartiteGraph& next){
+    /*
+    Select the last (valid) vertex of the current graph set up the next graph
+    to be all vertices connected to that last vertex.
+
+    Return false, if there are no vertices left.
+    */
     Vertex* v = last_vertex();
     if (!v)
         return false;
@@ -277,7 +286,7 @@ bool KPartiteKClique::KPartiteGraph::select(KPartiteKClique::KPartiteGraph& next
     pop_last_vertex();
     next.vertices.assign(vertices.begin(), vertices.end());
 
-    // Note that above, the part size of ``_k_clique[v.part]``
+    // Note that above, the part size of ``_k_clique[v.part]``:
     // current is one smaller than next.
     // This is intentional, as in next the vertex was selected, not
     // removed.
@@ -297,6 +306,7 @@ bool KPartiteKClique::KPartiteGraph::select(KPartiteKClique::KPartiteGraph& next
     problem->current_depth += 1;
 
     next.set_weights();
+
     if (problem->current_depth < 5 && next.set_weights())
         next.set_weights();
 
@@ -308,6 +318,11 @@ bool KPartiteKClique::KPartiteGraph::select(KPartiteKClique::KPartiteGraph& next
 // KPartiteKClique
 
 bool KPartiteKClique::traceback(){
+    /*
+    Go the the last valid graph.
+
+    If none exists, return false.
+    */
     while (current_depth >= 1){
         current_depth -= 1;
         if (current_graph().is_valid())
