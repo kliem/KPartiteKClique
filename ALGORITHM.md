@@ -51,4 +51,3 @@ clique.
 # Implementation Details
 
 We also represent incidences by bitsets as done by Mirghorbani et. al.
-This allows architecture dependent optimization.
