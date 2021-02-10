@@ -2,7 +2,7 @@
     #include <immintrin.h>
 #endif
 
-#include "k_partite_k_clique.h"
+#include "kpkc.h"
 
 #include <algorithm>
 
