@@ -404,3 +404,97 @@ KPartiteKClique::~KPartiteKClique(){
     delete[] all_vertices;
     delete[] recursive_graphs;
 }
+
+
+// bitCLQ
+
+bool bitCLQ::KPartiteKClique::set_part_sizes(){
+    int i;
+    int min_so_far = problem->n_vertices;
+    selected_part = -1;
+    for(i=0; i<k; i++){
+        if (part_sizes[i] != 1){
+            int j = count(i);
+            part_sizes[i] = j;
+            if (j == 0)
+                return false;
+            if (j == 1){
+                problem->_k_clique[i] = first(i);
+            } else if (j < min_so_far){
+                min_so_far = j;
+                selected_part = i;
+            }
+        }
+    }
+    return true;
+}
+
+bool bitCLQ::KPartiteGraph::select(bitCLQ::KPartiteGraph& next){
+    /*
+    Select the first vertex in the smallest part.
+
+    Return false, if there are no vertices left.
+    */
+    assert(selected_part != -1); // Should not be found, if we found a clique already.
+    if (!part_sizes[selected_part])
+        return false;
+
+    // Copy the current sizes.
+    for (int i=0; i<get_k(); i++)
+        next.part_sizes[i] = part_sizes[i];
+
+    next.part_sizes[selected_part] = 1;
+
+    // select v.
+    int v = first(selected_part);
+    intersection(*next.active_vertices, problem->all_vertices[v], *active_vertices);
+
+    // v may no longer be selected.
+    // In current not, because we have removed it.
+    // In next not, because it is selected already.
+
+    pop_last_vertex();
+    pop_vertex(selected_part, v);
+
+    problem->_k_clique[selected_part] = v;
+
+    // Raise the current
+    // depth, such that the
+    // parts get set
+    // accordingly.
+    problem->current_depth += 1;
+
+    next.set_part_sizes();
+
+    return true;
+}
+
+bool bitCLQ::next(){
+    /*
+    Set the next clique.
+    Return whether there is a next clique.
+    */
+    while (true){
+        if (current_graph().selected_part == -1){
+            // Already only one option.
+            current_graph().selected_part = -2;
+            return true;
+        }
+        if ((current_graph().selected_part == -2) \
+                || ((current_depth < k-1) && (!current_graph().select(next_graph())))){
+            if (!traceback())
+                // Out of options.
+                return false;
+        } else {
+            int selected_part = current_graph().selected_part;
+            if (current_graph().part_sizes[selected_part]){
+                _k_clique[selected_part] = current_graph().first(selected_part);
+                current_graph().pop_vertex(selected_part, _k_clique[selected_part]);
+            } else if (!traceback()){
+                // Out of options.
+                return false;
+            }
+        }
+    }
+}
+
