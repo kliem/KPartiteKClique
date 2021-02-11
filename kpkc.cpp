@@ -178,7 +178,7 @@ inline bool KPartiteKClique::Vertex::set_weight(){
         weight = 0;
         return false;
     }
-    if (problem->current_depth > 5){
+    if (problem->current_depth > problem->prec_depth){
         weight = 1;
         return false;
     }
@@ -307,7 +307,7 @@ bool KPartiteKClique::KPartiteGraph::select(KPartiteKClique::KPartiteGraph& next
 
     next.set_weights();
 
-    if (problem->current_depth < 5 && next.set_weights())
+    if (problem->current_depth < problem->prec_depth && next.set_weights())
         next.set_weights();
 
     sort(next.vertices.begin(), next.vertices.end());
@@ -366,10 +366,11 @@ KPartiteKClique::KPartiteKClique(){
     recursive_graphs = NULL;
 }
 
-KPartiteKClique::KPartiteKClique(const bool* const* incidences, const int n_vertices, const int* first_per_part, const int k){
+KPartiteKClique::KPartiteKClique(const bool* const* incidences, const int n_vertices, const int* first_per_part, const int k, const int prec_depth){
     assert(k>0);
 
     current_depth = 0;
+    this->prec_depth = prec_depth;
 
     _k_clique = new int[k];
     parts = new int[k+1];

@@ -101,7 +101,7 @@ class KPartiteKClique {
 
     public:
         const int* k_clique(){ return _k_clique; }
-        KPartiteKClique(const bool* const* incidences, const int n_vertices, const int* first_per_part, const int k);
+        KPartiteKClique(const bool* const* incidences, const int n_vertices, const int* first_per_part, const int k, const int prec_depth=5);
         KPartiteKClique(const KPartiteKClique& obj){
             // Not defined.
             assert(0);
@@ -115,6 +115,7 @@ class KPartiteKClique {
         int k;
         int current_depth;
         int n_vertices;
+        int prec_depth;
         Vertex* all_vertices;
         KPartiteGraph* recursive_graphs;
         KPartiteGraph& current_graph(){ return recursive_graphs[current_depth]; }
