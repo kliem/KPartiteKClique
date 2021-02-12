@@ -110,6 +110,14 @@ inline int Bitset::intersection_count(Bitset& r, int start, int stop){
     return counter;
 }
 
+inline int Bitset::count(int start, int stop){
+    assert(0);
+}
+
+inline int Bitset::first(int start, int stop){
+    assert(0);
+}
+
 void Bitset::set(int index){
     data[index/64] |= one_set_bit(index % 64);
 }
@@ -394,7 +402,10 @@ KPartiteKClique::KPartiteKClique(const bool* const* incidences, const int n_vert
     }
 
     recursive_graphs->vertices.assign(all_vertices, all_vertices + n_vertices);
-    recursive_graphs->set_weights();
+    if (recursive_graphs->set_weights())
+        recursive_graphs->set_weights();
+
+    sort(recursive_graphs->vertices.begin(), recursive_graphs->vertices.end());
 }
 
 
@@ -408,11 +419,11 @@ KPartiteKClique::~KPartiteKClique(){
 
 // bitCLQ
 
-bool bitCLQ::KPartiteKClique::set_part_sizes(){
+bool KPartiteKClique::KPartiteGraph::set_part_sizes(){
     int i;
     int min_so_far = problem->n_vertices;
     selected_part = -1;
-    for(i=0; i<k; i++){
+    for(i=0; i < problem->k; i++){
         if (part_sizes[i] != 1){
             int j = count(i);
             part_sizes[i] = j;
@@ -429,7 +440,7 @@ bool bitCLQ::KPartiteKClique::set_part_sizes(){
     return true;
 }
 
-bool bitCLQ::KPartiteGraph::select(bitCLQ::KPartiteGraph& next){
+bool KPartiteKClique::KPartiteGraph::select_bitCLQ(bitCLQ::KPartiteGraph& next){
     /*
     Select the first vertex in the smallest part.
 
@@ -481,7 +492,7 @@ bool bitCLQ::next(){
             return true;
         }
         if ((current_graph().selected_part == -2) \
-                || ((current_depth < k-1) && (!current_graph().select(next_graph())))){
+                || ((current_depth < k-1) && (!current_graph().select_bitCLQ(next_graph())))){
             if (!traceback())
                 // Out of options.
                 return false;

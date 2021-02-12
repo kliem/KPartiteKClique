@@ -75,6 +75,8 @@ class KPartiteKClique {
             public:
                 vector<Vertex> vertices;
                 Bitset* active_vertices;
+                int* part_sizes;
+                int selected_part; // Needed for bitCLQ
 
                 KPartiteGraph();
                 KPartiteGraph(const KPartiteGraph& obj){
@@ -93,12 +95,31 @@ class KPartiteKClique {
                     return new_knowledge;
                 }
                 bool select(KPartiteGraph& next);
-            protected:
+                bool select_bitCLQ(KPartiteGraph& next);
+
+                // Used by bitCLQ.
+                bool set_part_sizes();
+                inline int count(int start, int stop){
+                    return active_vertices->count(start, stop);
+                }
+                inline int count(int part){
+                    return count(get_parts()[part], get_parts()[part+1]);
+                }
+                inline int first(int start, int stop){
+                    return active_vertices->first(start, stop);
+                }
+                inline int first(int part){
+                    return first(get_parts()[part], get_parts()[part+1]);
+                }
+                inline void pop_vertex(int part, int vertex){
+                    active_vertices->unset(vertex);
+                    part_sizes[part] -= 1;
+                }
+            private:
                 inline const int* get_parts() { assert(problem); return problem->parts; }
                 inline const int get_k() { assert(problem); return problem->k; }
                 inline KPartiteGraph& current_graph(){ return problem->current_graph(); }
                 inline KPartiteGraph& next_graph(){ return problem->next_graph(); }
-                int* part_sizes;
                 KPartiteKClique* problem;
         };
 
@@ -127,31 +148,8 @@ class KPartiteKClique {
 };
 
 class bitCLQ : public KPartiteKClique {
-    class KPartiteGraph : public KPartiteKClique::KPartiteGraph {
-        public:
-            bool set_part_sizes();
-            inline int count(int start, int stop){
-                return active_vertices->count(start, stop);
-            }
-            inline int count(int part){
-                return count(get_parts()[part], get_parts()[part+1]);
-            }
-            inline int first(int start, int stop){
-                return active_vertices->first(start, stop);
-            }
-            inline int first(int part){
-                return first(get_parts()[part], get_parts()[part+1]);
-            }
-            inline void pop_vertex(int part, int vertex){
-                active_vertices->unset(vertex);
-                part_sizes[part] -= 1;
-            }
-            inline bool set_weights(){
-                return set_part_sizes();
-            }
-        private:
-            int selected_part;
-    };
+    public:
+        bool next();
 };
 
 #endif
