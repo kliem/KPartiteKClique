@@ -26,8 +26,6 @@ inline int first_in_limb(uint64_t i){
 #if (__BMI__) && (INTPTR_MAX == INT64_MAX)
     return _tzcnt_u64(i);
 #else
-    if (!i)
-        return 64;
     int output = 64;
     if (i & 0x00000000FFFFFFFF) output -= 32;
     if (i & 0x0000FFFF0000FFFF) output -= 16;
@@ -164,7 +162,7 @@ inline int Bitset::count(int start, int stop){
     return counter;
 }
 
-inline int Bitset::first(int start, int stop){
+inline int Bitset::first(int start){
     /*
     Return the first bit in ``this``
     in ``range(start, stop)``.
@@ -176,32 +174,21 @@ inline int Bitset::first(int start, int stop){
         // Remove the lower bits.
         start_limb &= ~lower_n_bits(start % 64);
 
-    uint64_t end_limb = 0;
-    if (stop/64 < limbs){
-        end_limb = data[stop/64];
-        if (stop % 64)
-            // Remove the upper bits.
-            end_limb &= lower_n_bits(stop % 64);
-    }
-    if (start/64 == stop/64){
-        // The start limb is the end limb.
-        start_limb &= end_limb;
-    }
-
     int counter = (start/64)*64;
-    int first_bit = first_in_limb(start_limb);
-    counter += first_bit;
-    if (first_bit < 64) return counter;
+    if (start_limb)
+        return counter + first_in_limb(start_limb);
+    else
+        counter += 64;
 
     // The easy part, count any complete ``uint64_t``.
-    for (int i=start/64 + 1; i< stop/64; i++){
-        first_bit = first_in_limb(data[i]);
-        counter += first_bit;
-        if (first_bit < 64) return counter;
+    for (int i=start/64 + 1; i< limbs; i++){
+        if (data[i])
+            return counter + first_in_limb(data[i]);
+        else
+            counter += 64;
     }
 
-    first_bit = first_in_limb(end_limb);
-    return counter + first_bit;
+    return limbs * 64;
 }
 
 void Bitset::set(int index){

@@ -22,7 +22,7 @@ class Bitset {
         void set(int index);
         int intersection_count(Bitset& r, int start, int stop);
         int count(int start, int stop);
-        int first(int start, int stop);
+        int first(int start);
         void intersection_assign(Bitset& l, Bitset& r);
     private:
         uint64_t* data;
