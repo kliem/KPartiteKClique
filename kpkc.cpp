@@ -1,4 +1,4 @@
-#if __POPCNT__
+#if __POPCNT__ || __BMI__
     #include <immintrin.h>
 #endif
 
@@ -20,6 +20,23 @@ inline int popcount(uint64_t i){
 
 inline uint64_t lower_n_bits(int n){
     return ((uint64_t) -1) >> (64 - n);
+}
+
+inline int first_in_limb(uint64_t i){
+#if (__BMI__) && (INTPTR_MAX == INT64_MAX)
+    return _tzcnt_u64(i);
+#else
+    if (!i)
+        return 64;
+    int output = 64;
+    if (i & 0x00000000FFFFFFFF) output -= 32;
+    if (i & 0x0000FFFF0000FFFF) output -= 16;
+    if (i & 0x00FF00FF00FF00FF) output -= 8;
+    if (i & 0x0F0F0F0F0F0F0F0F) output -= 4;
+    if (i & 0x3333333333333333) output -= 2;
+    if (i & 0x5555555555555555) output -= 1;
+    return output
+#endif
 }
 
 inline uint64_t one_set_bit(int n){
@@ -111,11 +128,80 @@ inline int Bitset::intersection_count(Bitset& r, int start, int stop){
 }
 
 inline int Bitset::count(int start, int stop){
-    assert(0);
+    /*
+    Count the number of set bits in ``this``
+    in ``range(start, stop)``.
+    */
+    int counter = 0;
+    // The easy part, count any complete ``uint64_t``.
+    for (int i=start/64 + 1; i< stop/64; i++)
+        counter += popcount(data[i]);
+
+    uint64_t start_limb = data[start/64];
+    if (start % 64)
+        // Remove the lower bits.
+        start_limb &= ~lower_n_bits(start % 64);
+
+    uint64_t end_limb = 0;
+    if (stop/64 < limbs){
+        end_limb = data[stop/64];
+        if (stop % 64)
+            // Remove the upper bits.
+            end_limb &= lower_n_bits(stop % 64);
+    }
+
+    if (start/64 == stop/64){
+        // The start limb is the end limb.
+        counter += popcount(start_limb & end_limb);
+    } else {
+        if (stop/64 < limbs){
+            counter += popcount(start_limb) + popcount(end_limb);
+        } else {
+            // There is no end limb.
+            counter += popcount(start_limb);
+        }
+    }
+    return counter;
 }
 
 inline int Bitset::first(int start, int stop){
-    assert(0);
+    /*
+    Return the first bit in ``this``
+    in ``range(start, stop)``.
+
+    It assumes that the range is valid and that there is at least on non-zero bit.
+    */
+    uint64_t start_limb = data[start/64];
+    if (start % 64)
+        // Remove the lower bits.
+        start_limb &= ~lower_n_bits(start % 64);
+
+    uint64_t end_limb = 0;
+    if (stop/64 < limbs){
+        end_limb = data[stop/64];
+        if (stop % 64)
+            // Remove the upper bits.
+            end_limb &= lower_n_bits(stop % 64);
+    }
+    if (start/64 == stop/64){
+        // The start limb is the end limb.
+        start_limb &= end_limb;
+    }
+
+    int counter = (start/64)*64;
+    int first_bit = first_in_limb(start_limb);
+    counter += first_bit;
+    if (first_bit < 64) return counter;
+
+    // The easy part, count any complete ``uint64_t``.
+    for (int i=start/64 + 1; i< stop/64; i++){
+        first_bit = first_in_limb(data[i]);
+        counter += first_bit;
+        if (first_bit < 64) return counter;
+    }
+
+    first_bit = first_in_limb(end_limb);
+    return counter + first_bit;
 }
 
 void Bitset::set(int index){
@@ -402,10 +488,13 @@ KPartiteKClique::KPartiteKClique(const bool* const* incidences, const int n_vert
     }
 
     recursive_graphs->vertices.assign(all_vertices, all_vertices + n_vertices);
+    /*
     if (recursive_graphs->set_weights())
         recursive_graphs->set_weights();
+    */
+    recursive_graphs->set_weights();
 
-    sort(recursive_graphs->vertices.begin(), recursive_graphs->vertices.end());
+    //sort(recursive_graphs->vertices.begin(), recursive_graphs->vertices.end());
 }
 
 
@@ -419,6 +508,7 @@ KPartiteKClique::~KPartiteKClique(){
 
 // bitCLQ
 
+/*
 bool KPartiteKClique::KPartiteGraph::set_part_sizes(){
     int i;
     int min_so_far = problem->n_vertices;
@@ -439,13 +529,14 @@ bool KPartiteKClique::KPartiteGraph::set_part_sizes(){
     }
     return true;
 }
+*/
 
-bool KPartiteKClique::KPartiteGraph::select_bitCLQ(bitCLQ::KPartiteGraph& next){
-    /*
+/*
+
+bool KPartiteKClique::KPartiteGraph::select_bitCLQ(KPartiteKClique::KPartiteGraph& next){
     Select the first vertex in the smallest part.
 
     Return false, if there are no vertices left.
-    */
     assert(selected_part != -1); // Should not be found, if we found a clique already.
     if (!part_sizes[selected_part])
         return false;
@@ -480,11 +571,13 @@ bool KPartiteKClique::KPartiteGraph::select_bitCLQ(bitCLQ::KPartiteGraph& next){
     return true;
 }
 
+*/
+
+/*
+
 bool bitCLQ::next(){
-    /*
-    Set the next clique.
-    Return whether there is a next clique.
-    */
+    // Set the next clique.
+    // Return whether there is a next clique.
     while (true){
         if (current_graph().selected_part == -1){
             // Already only one option.
@@ -509,3 +602,4 @@ bool bitCLQ::next(){
     }
 }
 
+*/
