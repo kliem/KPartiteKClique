@@ -449,15 +449,12 @@ void KPartiteKClique::constructor(){
 
 KPartiteKClique::KPartiteKClique(const bool* const* incidences, const int n_vertices, const int* first_per_part, const int k, const int prec_depth){
     constructor(incidences, n_vertices, first_per_part, k, prec_depth);
-    /*
     if (recursive_graphs->set_weights())
         recursive_graphs->set_weights();
-    */
     recursive_graphs->set_weights();
 
-    //sort(recursive_graphs->vertices.begin(), recursive_graphs->vertices.end());
+    sort(recursive_graphs->vertices.begin(), recursive_graphs->vertices.end());
 }
-
 
 void KPartiteKClique::constructor(const bool* const* incidences, const int n_vertices, const int* first_per_part, const int k, const int prec_depth){
     assert(k>0);
@@ -489,7 +486,7 @@ void KPartiteKClique::constructor(const bool* const* incidences, const int n_ver
 }
 
 
-void KPartiteKClique::destructor(){
+KPartiteKClique::~KPartiteKClique(){
     delete[] _k_clique;
     delete[] parts;
     delete[] all_vertices;
@@ -507,10 +504,13 @@ bool KPartiteKClique::KPartiteGraph::set_part_sizes(){
         if (part_sizes[i] != 1){
             int j = count(i);
             part_sizes[i] = j;
-            if (j == 0)
+            if (j == 0){
+                selected_part = -2;
                 return false;
+            }
             if (j == 1){
-                problem->_k_clique[i] = first(i);
+                selected_part = i;
+                return true;
             } else if (j < min_so_far){
                 min_so_far = j;
                 selected_part = i;
@@ -539,13 +539,13 @@ bool KPartiteKClique::KPartiteGraph::select_bitCLQ(KPartiteKClique::KPartiteGrap
 
     // select v.
     int v = first(selected_part);
+    if (v == -1) return false;
     intersection(*next.active_vertices, problem->all_vertices[v], *active_vertices);
 
     // v may no longer be selected.
     // In current not, because we have removed it.
     // In next not, because it is selected already.
 
-    pop_last_vertex();
     pop_vertex(selected_part, v);
 
     problem->_k_clique[selected_part] = v;
@@ -556,9 +556,7 @@ bool KPartiteKClique::KPartiteGraph::select_bitCLQ(KPartiteKClique::KPartiteGrap
     // accordingly.
     problem->current_depth += 1;
 
-    next.set_part_sizes();
-
-    return true;
+    return next.set_part_sizes();
 }
 
 bitCLQ::bitCLQ(const bool* const* incidences, const int n_vertices, const int* first_per_part, const int k, const int prec_depth){
@@ -585,24 +583,25 @@ bool bitCLQ::next(){
     // Set the next clique.
     // Return whether there is a next clique.
     while (true){
-        if (current_graph().selected_part == -1){
-            // Already only one option.
-            current_graph().selected_part = -2;
-            return true;
-        }
         if ((current_graph().selected_part == -2) \
                 || ((current_depth < k-1) && (!current_graph().select_bitCLQ(next_graph())))){
             if (!traceback())
                 // Out of options.
                 return false;
         } else {
-            int selected_part = current_graph().selected_part;
-            if (current_graph().part_sizes[selected_part]){
-                _k_clique[selected_part] = current_graph().first(selected_part);
-                current_graph().pop_vertex(selected_part, _k_clique[selected_part]);
-            } else if (!traceback()){
-                // Out of options.
-                return false;
+            if (current_depth == k-1){
+                int selected_part = current_graph().selected_part;
+                if (current_graph().part_sizes[selected_part]){
+                    _k_clique[selected_part] = current_graph().first(selected_part);
+                    if (_k_clique[selected_part] != -1){
+                        current_graph().pop_vertex(selected_part, _k_clique[selected_part]);
+                        return true;
+                    }
+                }
+                if (!traceback()){
+                    // Out of options.
+                    return false;
+                }
             }
         }
     }

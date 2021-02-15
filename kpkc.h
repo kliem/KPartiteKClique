@@ -109,7 +109,8 @@ class KPartiteKClique {
                     return count(get_parts()[part], get_parts()[part+1]);
                 }
                 inline int first(int part){
-                    return active_vertices->first(get_parts()[part]);
+                    int the_first = active_vertices->first(get_parts()[part]);
+                    return (the_first < get_parts()[part+1]) ? the_first : -1;
                 }
                 inline void pop_vertex(int part, int vertex){
                     active_vertices->unset(vertex);
@@ -131,7 +132,7 @@ class KPartiteKClique {
             assert(0);
         }
         KPartiteKClique() { constructor(); }
-        ~KPartiteKClique() { destructor(); }
+        ~KPartiteKClique();
         bool next();
     protected:
         int* _k_clique;
@@ -147,7 +148,6 @@ class KPartiteKClique {
         bool traceback();
         void constructor();
         void constructor(const bool* const* incidences, const int n_vertices, const int* first_per_part, const int k, const int prec_depth);
-        void destructor();
 };
 
 class bitCLQ : public KPartiteKClique {
@@ -156,9 +156,7 @@ class bitCLQ : public KPartiteKClique {
             // Not defined.
             assert(0);
         }
-        bitCLQ() { constructor(); }
         bitCLQ(const bool* const* incidences, const int n_vertices, const int* first_per_part, const int k, const int prec_depth=5);
-        ~bitCLQ() { destructor(); }
         bool next();
     protected:
         bool traceback();
