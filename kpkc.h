@@ -31,7 +31,10 @@ class Bitset {
         inline uint64_t& operator[](int i){ return data[i]; }
 };
 
+class KPartiteKClique;
+
 class KPartiteKClique {
+    private:
         class Vertex {
             inline friend bool operator<(const Vertex& l, const Vertex& r){
                 // The lower the weight, the higher the obstruction when
@@ -70,61 +73,55 @@ class KPartiteKClique {
                 inline Bitset& get_active_vertices() { return *(problem->current_graph()).active_vertices; }
         };
 
-    class KPartiteGraph {
-        public:
-            vector<Vertex> vertices;
-            Bitset* active_vertices;
-            //int selected_part; // Needed for bitCLQ
+    protected:
+        class KPartiteGraph {
+            public:
+                vector<Vertex> vertices;
+                Bitset* active_vertices;
+                int* part_sizes;
+                int selected_part;  // bitCLQ
 
-            KPartiteGraph();
-            KPartiteGraph(const KPartiteGraph& obj){
-                // Not defined.
-                assert(0);
-            }
-            void init(KPartiteKClique* problem, bool fill);
-            ~KPartiteGraph();
-            Vertex* last_vertex();
-            void pop_last_vertex();
-            bool is_valid();
-            inline bool set_weights(){
-                bool new_knowledge = false;
-                for(Vertex& v: vertices)
-                    new_knowledge |= v.set_weight();
-                return new_knowledge;
-            }
-            bool select(KPartiteGraph& next);
-            /*
-            bool select_bitCLQ(KPartiteGraph& next);
-            */
+                KPartiteGraph();
+                KPartiteGraph(const KPartiteGraph& obj){
+                    // Not defined.
+                    assert(0);
+                }
+                void init(KPartiteKClique* problem, bool fill);
+                ~KPartiteGraph();
+                Vertex* last_vertex();
+                void pop_last_vertex();
+                bool is_valid();
+                inline bool set_weights(){
+                    bool new_knowledge = false;
+                    for(Vertex& v: vertices)
+                        new_knowledge |= v.set_weight();
+                    return new_knowledge;
+                }
+                bool select(KPartiteGraph& next);
 
-            /*
-            // Used by bitCLQ.
-            bool set_part_sizes();
-            inline int count(int start, int stop){
-                return active_vertices->count(start, stop);
-            }
-            inline int count(int part){
-                return count(get_parts()[part], get_parts()[part+1]);
-            }
-            inline int first(int start, int stop){
-                return active_vertices->first(start, stop);
-            }
-            inline int first(int part){
-                return first(get_parts()[part], get_parts()[part+1]);
-            }
-            inline void pop_vertex(int part, int vertex){
-                active_vertices->unset(vertex);
-                part_sizes[part] -= 1;
-            }
-            */
-        private:
-            inline const int* get_parts() { assert(problem); return problem->parts; }
-            inline const int get_k() { assert(problem); return problem->k; }
-            inline KPartiteGraph& current_graph(){ return problem->current_graph(); }
-            inline KPartiteGraph& next_graph(){ return problem->next_graph(); }
-            KPartiteKClique* problem;
-            int* part_sizes;
-    };
+                // Used by bitCLQ.
+                bool set_part_sizes();
+                bool select_bitCLQ(KPartiteGraph& next);
+                inline int count(int start, int stop){
+                    return active_vertices->count(start, stop);
+                }
+                inline int count(int part){
+                    return count(get_parts()[part], get_parts()[part+1]);
+                }
+                inline int first(int part){
+                    return active_vertices->first(get_parts()[part]);
+                }
+                inline void pop_vertex(int part, int vertex){
+                    active_vertices->unset(vertex);
+                    part_sizes[part] -= 1;
+                }
+            private:
+                inline const int* get_parts() { assert(problem); return problem->parts; }
+                inline const int get_k() { assert(problem); return problem->k; }
+                inline KPartiteGraph& current_graph(){ return problem->current_graph(); }
+                inline KPartiteGraph& next_graph(){ return problem->next_graph(); }
+                KPartiteKClique* problem;
+        };
 
     public:
         const int* k_clique(){ return _k_clique; }
@@ -133,10 +130,10 @@ class KPartiteKClique {
             // Not defined.
             assert(0);
         }
-        KPartiteKClique();
-        ~KPartiteKClique();
+        KPartiteKClique() { constructor(); }
+        ~KPartiteKClique() { destructor(); }
         bool next();
-    private:
+    protected:
         int* _k_clique;
         int* parts;
         int k;
@@ -148,11 +145,23 @@ class KPartiteKClique {
         KPartiteGraph& current_graph(){ return recursive_graphs[current_depth]; }
         KPartiteGraph& next_graph(){ return recursive_graphs[current_depth + 1]; }
         bool traceback();
+        void constructor();
+        void constructor(const bool* const* incidences, const int n_vertices, const int* first_per_part, const int k, const int prec_depth);
+        void destructor();
 };
 
-// class bitCLQ : public KPartiteKClique {
-//     public:
-//         bool next();
-// };
+class bitCLQ : public KPartiteKClique {
+    public:
+        bitCLQ(const bitCLQ& obj){
+            // Not defined.
+            assert(0);
+        }
+        bitCLQ() { constructor(); }
+        bitCLQ(const bool* const* incidences, const int n_vertices, const int* first_per_part, const int k, const int prec_depth=5);
+        ~bitCLQ() { destructor(); }
+        bool next();
+    protected:
+        bool traceback();
+};
 
 #endif

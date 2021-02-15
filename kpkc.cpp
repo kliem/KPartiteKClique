@@ -322,7 +322,7 @@ inline bool KPartiteKClique::KPartiteGraph::is_valid(){
 
 void KPartiteKClique::KPartiteGraph::init(KPartiteKClique* problem, bool fill){
     active_vertices = new Bitset(problem->n_vertices, fill);
-    part_sizes = new int[problem->k];
+    part_sizes = new int[problem->k+1];
     for (int i=0; i < problem->k; i++){
         part_sizes[i] = problem->parts[i+1] - problem->parts[i];
     }
@@ -440,7 +440,7 @@ bool KPartiteKClique::next(){
     }
 }
 
-KPartiteKClique::KPartiteKClique(){
+void KPartiteKClique::constructor(){
     _k_clique = NULL;
     parts = NULL;
     all_vertices = NULL;
@@ -448,6 +448,18 @@ KPartiteKClique::KPartiteKClique(){
 }
 
 KPartiteKClique::KPartiteKClique(const bool* const* incidences, const int n_vertices, const int* first_per_part, const int k, const int prec_depth){
+    constructor(incidences, n_vertices, first_per_part, k, prec_depth);
+    /*
+    if (recursive_graphs->set_weights())
+        recursive_graphs->set_weights();
+    */
+    recursive_graphs->set_weights();
+
+    //sort(recursive_graphs->vertices.begin(), recursive_graphs->vertices.end());
+}
+
+
+void KPartiteKClique::constructor(const bool* const* incidences, const int n_vertices, const int* first_per_part, const int k, const int prec_depth){
     assert(k>0);
 
     current_depth = 0;
@@ -473,19 +485,11 @@ KPartiteKClique::KPartiteKClique(const bool* const* incidences, const int n_vert
             current_part += 1;
         all_vertices[i].init(this, incidences[i], n_vertices, current_part, i);
     }
-
     recursive_graphs->vertices.assign(all_vertices, all_vertices + n_vertices);
-    /*
-    if (recursive_graphs->set_weights())
-        recursive_graphs->set_weights();
-    */
-    recursive_graphs->set_weights();
-
-    //sort(recursive_graphs->vertices.begin(), recursive_graphs->vertices.end());
 }
 
 
-KPartiteKClique::~KPartiteKClique(){
+void KPartiteKClique::destructor(){
     delete[] _k_clique;
     delete[] parts;
     delete[] all_vertices;
@@ -495,7 +499,6 @@ KPartiteKClique::~KPartiteKClique(){
 
 // bitCLQ
 
-/*
 bool KPartiteKClique::KPartiteGraph::set_part_sizes(){
     int i;
     int min_so_far = problem->n_vertices;
@@ -516,14 +519,14 @@ bool KPartiteKClique::KPartiteGraph::set_part_sizes(){
     }
     return true;
 }
-*/
 
-/*
 
 bool KPartiteKClique::KPartiteGraph::select_bitCLQ(KPartiteKClique::KPartiteGraph& next){
+    /*
     Select the first vertex in the smallest part.
 
     Return false, if there are no vertices left.
+    */
     assert(selected_part != -1); // Should not be found, if we found a clique already.
     if (!part_sizes[selected_part])
         return false;
@@ -558,9 +561,25 @@ bool KPartiteKClique::KPartiteGraph::select_bitCLQ(KPartiteKClique::KPartiteGrap
     return true;
 }
 
-*/
+bitCLQ::bitCLQ(const bool* const* incidences, const int n_vertices, const int* first_per_part, const int k, const int prec_depth){
+    constructor(incidences, n_vertices, first_per_part, k, prec_depth);
+    recursive_graphs->set_part_sizes();
+}
 
-/*
+bool bitCLQ::traceback(){
+    /*
+    Go the the last valid graph.
+
+    If none exists, return false.
+    */
+    while (current_depth >= 1){
+        current_depth -= 1;
+        int selected_part = current_graph().selected_part;
+        if (selected_part >= 0)
+            return true;
+    }
+    return false;
+}
 
 bool bitCLQ::next(){
     // Set the next clique.
@@ -589,4 +608,3 @@ bool bitCLQ::next(){
     }
 }
 
-*/
