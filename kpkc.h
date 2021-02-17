@@ -145,7 +145,7 @@ class KPartiteKClique {
         KPartiteGraph* recursive_graphs;
         KPartiteGraph& current_graph(){ return recursive_graphs[current_depth]; }
         KPartiteGraph& next_graph(){ return recursive_graphs[current_depth + 1]; }
-        bool traceback();
+        bool backtrack();
         void constructor();
         void constructor(const bool* const* incidences, const int n_vertices, const int* first_per_part, const int k, const int prec_depth);
 };
@@ -159,7 +159,7 @@ class bitCLQ : public KPartiteKClique {
         bitCLQ(const bool* const* incidences, const int n_vertices, const int* first_per_part, const int k, const int prec_depth=5);
         bool next();
     protected:
-        bool traceback();
+        bool backtrack();
 };
 
 #endif

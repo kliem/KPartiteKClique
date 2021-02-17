@@ -398,7 +398,7 @@ bool KPartiteKClique::KPartiteGraph::select(KPartiteKClique::KPartiteGraph& next
 
 // KPartiteKClique
 
-bool KPartiteKClique::traceback(){
+bool KPartiteKClique::backtrack(){
     /*
     Go the the last valid graph.
 
@@ -420,14 +420,14 @@ bool KPartiteKClique::next(){
     while (true){
         if (current_depth < k-1){
             if (!current_graph().select(next_graph())){
-                if (!traceback())
+                if (!backtrack())
                     // Out of options.
                     return false;
             }
         } else {
             Vertex* vpt = current_graph().last_vertex();
             if (!vpt){
-                if (!traceback()){
+                if (!backtrack()){
                     // Out of options.
                     return false;
                 }
@@ -564,7 +564,7 @@ bitCLQ::bitCLQ(const bool* const* incidences, const int n_vertices, const int* f
     recursive_graphs->set_part_sizes();
 }
 
-bool bitCLQ::traceback(){
+bool bitCLQ::backtrack(){
     /*
     Go the the last valid graph.
 
@@ -585,7 +585,7 @@ bool bitCLQ::next(){
     while (true){
         if ((current_graph().selected_part == -2) \
                 || ((current_depth < k-1) && (!current_graph().select_bitCLQ(next_graph())))){
-            if (!traceback())
+            if (!backtrack())
                 // Out of options.
                 return false;
         } else {
@@ -598,7 +598,7 @@ bool bitCLQ::next(){
                         return true;
                     }
                 }
-                if (!traceback()){
+                if (!backtrack()){
                     // Out of options.
                     return false;
                 }
