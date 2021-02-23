@@ -23,17 +23,20 @@ inline uint64_t lower_n_bits(int n){
 }
 
 inline int first_in_limb(uint64_t i){
+    // Return the position of the first bit.
+    //
+    // Assumes that ``i`` is nonzero.
 #if (__BMI__) && (INTPTR_MAX == INT64_MAX)
     return _tzcnt_u64(i);
 #else
-    int output = 64;
-    if (i & 0x00000000FFFFFFFF) output -= 32;
-    if (i & 0x0000FFFF0000FFFF) output -= 16;
-    if (i & 0x00FF00FF00FF00FF) output -= 8;
-    if (i & 0x0F0F0F0F0F0F0F0F) output -= 4;
-    if (i & 0x3333333333333333) output -= 2;
-    if (i & 0x5555555555555555) output -= 1;
-    return output
+    int output = 63;
+    (i & 0x00000000FFFFFFFF) ? output -= 32 : (i >>= 32);
+    (i & 0x000000000000FFFF) ? output -= 16 : (i >>= 16);
+    (i & 0x00000000000000FF) ? output -=  8 : (i >>=  8);
+    (i & 0x000000000000000F) ? output -=  4 : (i >>=  4);
+    (i & 0x0000000000000003) ? output -=  2 : (i >>=  2);
+    if (i & 0x0000000000000001) output -=  1;
+    return output;
 #endif
 }
 
@@ -496,7 +499,7 @@ KPartiteKClique::~KPartiteKClique(){
 
 // bitCLQ
 
-bool KPartiteKClique::KPartiteGraph::set_part_sizes(){
+inline bool KPartiteKClique::KPartiteGraph::set_part_sizes(){
     int i;
     int min_so_far = problem->n_vertices;
     selected_part = -1;
