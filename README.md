@@ -42,4 +42,4 @@ The algorithm `KPartiteKClique` is described [here](ALGORITHM.md)
 
 # Python wrapper
 
-A python wrapper is avaible [here](https://github.com/kliem/KPartiteKClique).
+A python wrapper is avaible [here](https://github.com/kliem/PyKPartiteKClique).
