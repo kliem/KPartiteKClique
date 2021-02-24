@@ -38,7 +38,7 @@ are looking for k-cliques only.
 
 # Algorithm
 
-The algorithm `KPartiteKClique` is described [here](ALGORITHM.md)
+The algorithms are described [here](ALGORITHM.md)
 
 # Python wrapper
 
