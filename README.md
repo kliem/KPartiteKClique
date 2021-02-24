@@ -39,3 +39,7 @@ are looking for k-cliques only.
 # Algorithm
 
 The algorithm `KPartiteKClique` is described [here](ALGORITHM.md)
+
+# Python wrapper
+
+A python wrapper is avaible [here](https://github.com/kliem/KPartiteKClique).

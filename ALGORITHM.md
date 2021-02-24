@@ -1,5 +1,7 @@
 # General Approach
 
+## bitCLQ
+
 To iterate over all k-cliques of a k-partite graph, there is a very
 natural approach that is also described in
 
@@ -23,11 +25,18 @@ publication adds the use of bitsets:
 
 *Select an arbitrary vertex in the part with minimal size*
 
-However, this approach seems to perform only well on graphs with
-somewhat equally distributed edges.
-In this case the degrees of the vertices do not differ significantly.
+We have implemented this algorithm `bitCLQ` as free software, as we could not find an available implementation.
 
-Instead we use the pivot selection strategy described in
+## KPartiteKClique
+
+`bitCLQ` performs especially well on graphs with
+somewhat equally distributed edges.
+
+However, we have encountered graphs that appear infeasible with this approach.
+Those graphs arise from point configurations.
+They have far from equally distributed edges.
+
+We use the pivot selection strategy described in
 
 - Konc,J. and Janezic,D. An improved branch and bound algorithm for the maximum clique problem. MATCH Commun. Math. Comput. Chem., 2007, 58, 569-590.
 
@@ -36,11 +45,8 @@ Instead we use the pivot selection strategy described in
 This approach might seem counterintuitive, as we start with the vertex
 that is least likely to be contained in a k-clique.
 However, this allows to reduce the recursion depth significantly.
-While selecting a vertex in the smallest part completly fails in some
-instances (did not finish in 24 hours), the implementation mcqd of the last reference finishes in 12
-seconds.
 
-mcqd completely ignores the given k-partition
+`mcqd` completely ignores the given k-partition
 and just computes the clique number by coloring the graph (but likely
 not optimal).
 
