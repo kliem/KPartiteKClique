@@ -229,6 +229,7 @@ inline KPartiteKClique::Vertex::Vertex(const Vertex& obj){
 }
 
 void KPartiteKClique::Vertex::init(KPartiteKClique* problem, const bool* incidences, int n_vertices, int part, int index){
+    assert(is_shallow);
     bitset = new Bitset(incidences, n_vertices);
     is_shallow = false;
     weight = -1;
@@ -240,6 +241,8 @@ void KPartiteKClique::Vertex::init(KPartiteKClique* problem, const bool* inciden
     // This is important, so that after selecting a vertex
     // the corresponding part will have one ``active_vertex``.
     bitset->set(index);
+
+    assert(1 == bitset->count(get_parts()[part], get_parts()[part + 1]));  // check that the graph is indeed k-partite
 }
 
 inline KPartiteKClique::Vertex::~Vertex(){
@@ -358,7 +361,7 @@ bool KPartiteKClique::KPartiteGraph::select(KPartiteKClique::KPartiteGraph& next
     for (int i=0; i<get_k(); i++)
         next.part_sizes[i] = part_sizes[i];
 
-    // select v.
+    // Select v.
     problem->_k_clique[v->part] = v->index;
     intersection(*next.active_vertices, *v, *active_vertices);
 
@@ -391,6 +394,12 @@ bool KPartiteKClique::KPartiteGraph::select(KPartiteKClique::KPartiteGraph& next
 
     next.set_weights();
 
+    // When setting weights, we also discover that some vertices are not
+    // longer possible.
+    // This information can be used to call set weights again and get
+    // preciser results.
+    // This appears to pay off if we are not too deep in the recursion
+    // tree.
     if (problem->current_depth < problem->prec_depth && next.set_weights())
         next.set_weights();
 
@@ -454,7 +463,6 @@ KPartiteKClique::KPartiteKClique(const bool* const* incidences, const int n_vert
     constructor(incidences, n_vertices, first_per_part, k, prec_depth);
     if (recursive_graphs->set_weights())
         recursive_graphs->set_weights();
-    recursive_graphs->set_weights();
 
     sort(recursive_graphs->vertices.begin(), recursive_graphs->vertices.end());
 }
@@ -508,10 +516,12 @@ inline bool KPartiteKClique::KPartiteGraph::set_part_sizes(){
             int j = count(i);
             part_sizes[i] = j;
             if (j == 0){
+                // this part is empty; need to backtrack
                 selected_part = -2;
                 return false;
             }
             if (j == 1){
+                // this part has a unique choice
                 selected_part = i;
                 return true;
             } else if (j < min_so_far){
@@ -530,7 +540,7 @@ bool KPartiteKClique::KPartiteGraph::select_bitCLQ(KPartiteKClique::KPartiteGrap
 
     Return false, if there are no vertices left.
     */
-    assert(selected_part != -1); // Should not be found, if we found a clique already.
+    assert(selected_part != -1); // Should not be called, if we found a clique already.
     if (!part_sizes[selected_part])
         return false;
 
@@ -540,7 +550,7 @@ bool KPartiteKClique::KPartiteGraph::select_bitCLQ(KPartiteKClique::KPartiteGrap
 
     next.part_sizes[selected_part] = 1;
 
-    // select v.
+    // Select v.
     int v = first(selected_part);
     if (v == -1) return false;
     intersection(*next.active_vertices, problem->all_vertices[v], *active_vertices);
@@ -569,7 +579,7 @@ bitCLQ::bitCLQ(const bool* const* incidences, const int n_vertices, const int* f
 
 bool bitCLQ::backtrack(){
     /*
-    Go the the last valid graph.
+    Go to the the last valid graph.
 
     If none exists, return false.
     */
@@ -577,6 +587,8 @@ bool bitCLQ::backtrack(){
         current_depth -= 1;
         int selected_part = current_graph().selected_part;
         if (selected_part >= 0)
+            // If ``selected_part == -1`` there was a unique choice
+            // and we have visited it already.
             return true;
     }
     return false;
@@ -593,6 +605,9 @@ bool bitCLQ::next(){
                 return false;
         } else {
             if (current_depth == k-1){
+                // We are done. There is only one part left, for which we
+                // have choices.
+                // Each choice corresponds to a valid k-clique.
                 int selected_part = current_graph().selected_part;
                 if (current_graph().part_sizes[selected_part]){
                     _k_clique[selected_part] = current_graph().first(selected_part);
