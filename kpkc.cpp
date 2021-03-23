@@ -106,12 +106,14 @@ inline int Bitset::intersection_count(Bitset& r, int start, int stop){
         // Remove the lower bits.
         start_limb &= ~lower_n_bits(start % 64);
 
+    if (stop % 64 == 0)
+        return counter + popcount(start_limb);
+
     uint64_t end_limb = 0;
     if (stop/64 < limbs){
         end_limb = data[stop/64] & r[stop/64];
-        if (stop % 64)
-            // Remove the upper bits.
-            end_limb &= lower_n_bits(stop % 64);
+        // Remove the upper bits.
+        end_limb &= lower_n_bits(stop % 64);
     }
 
     if (start/64 == stop/64){
@@ -143,12 +145,14 @@ inline int Bitset::count(int start, int stop){
         // Remove the lower bits.
         start_limb &= ~lower_n_bits(start % 64);
 
+    if (stop % 64 == 0)
+        return counter + popcount(start_limb);
+
     uint64_t end_limb = 0;
     if (stop/64 < limbs){
         end_limb = data[stop/64];
-        if (stop % 64)
-            // Remove the upper bits.
-            end_limb &= lower_n_bits(stop % 64);
+        // Remove the upper bits.
+        end_limb &= lower_n_bits(stop % 64);
     }
 
     if (start/64 == stop/64){
