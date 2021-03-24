@@ -5,6 +5,21 @@
 #include "kpkc.h"
 
 #include <algorithm>
+#include <csignal>
+#include <iostream>
+#include <stdlib.h>
+#include <stdexcept>
+
+volatile sig_atomic_t kpkc_interrupted = 0;
+
+void interrupt_signal_handler(int signal) {
+    kpkc_interrupted = 1;
+}
+
+#define INTERRUPT_COMPUTATION_BY_EXCEPTION              \
+    if (kpkc_interrupted) {                              \
+        throw runtime_error("computation with kpkc was interrupted"); \
+}
 
 // Bitset helpers.
 
@@ -433,8 +448,12 @@ bool KPartiteKClique::next(){
     Set the next clique.
     Return whether there is a next clique.
     */
+    signal(SIGINT, &interrupt_signal_handler);
+    kpkc_interrupted = 0;
     while (true){
         if (current_depth < k-1){
+            //if (kpkc_interrupted) return -1;
+            INTERRUPT_COMPUTATION_BY_EXCEPTION
             if (!current_graph().select(next_graph())){
                 if (!backtrack())
                     // Out of options.
@@ -601,9 +620,12 @@ bool bitCLQ::backtrack(){
 bool bitCLQ::next(){
     // Set the next clique.
     // Return whether there is a next clique.
+    signal(SIGINT, &interrupt_signal_handler);
+    kpkc_interrupted = 0;
     while (true){
         if ((current_graph().selected_part == -2) \
                 || ((current_depth < k-1) && (!current_graph().select_bitCLQ(next_graph())))){
+            INTERRUPT_COMPUTATION_BY_EXCEPTION
             if (!backtrack())
                 // Out of options.
                 return false;
