@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <vector>
 #include <cassert>
+#include <stdexcept>
 using namespace std;
 
 class Bitset;
@@ -13,8 +14,7 @@ class Bitset {
         Bitset(int n_vertices, bool fill=false);
         Bitset(const bool* set_bits, int n_vertices);
         Bitset(const Bitset& obj){
-            // Not defined.
-            assert(0);
+            throw invalid_argument("bitsets cannot be copied");
         }
         ~Bitset();
         void unset(int index);
@@ -83,8 +83,7 @@ class KPartiteKClique {
 
                 KPartiteGraph();
                 KPartiteGraph(const KPartiteGraph& obj){
-                    // Not defined.
-                    assert(0);
+                    throw invalid_argument("KPartiteGraph cannot be copied");
                 }
                 void init(KPartiteKClique* problem, bool fill);
                 ~KPartiteGraph();
@@ -128,8 +127,7 @@ class KPartiteKClique {
         const int* k_clique(){ return _k_clique; }
         KPartiteKClique(const bool* const* incidences, const int n_vertices, const int* first_per_part, const int k, const int prec_depth=5);
         KPartiteKClique(const KPartiteKClique& obj){
-            // Not defined.
-            assert(0);
+            throw invalid_argument("KPartiteKClique cannot be copied");
         }
         KPartiteKClique() { constructor(); }
         ~KPartiteKClique();
@@ -153,12 +151,12 @@ class KPartiteKClique {
 class bitCLQ : public KPartiteKClique {
     public:
         bitCLQ(const bitCLQ& obj){
-            // Not defined.
-            assert(0);
+            throw invalid_argument("bitCLQ cannot be copied");
         }
         bitCLQ(const bool* const* incidences, const int n_vertices, const int* first_per_part, const int k, const int prec_depth=5);
         bool next();
     protected:
+        int n_trivial_parts;
         bool backtrack();
 };
 

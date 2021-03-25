@@ -8,7 +8,9 @@
 #include <csignal>
 #include <iostream>
 #include <stdlib.h>
-#include <stdexcept>
+
+// Handle keyboard
+// interrupts
 
 volatile sig_atomic_t kpkc_interrupted = 0;
 
@@ -16,8 +18,22 @@ void interrupt_signal_handler(int signal) {
     kpkc_interrupted = 1;
 }
 
-#define INTERRUPT_COMPUTATION_BY_EXCEPTION              \
+struct sigaction prev_action;
+
+struct sigaction sigIntHandler;
+
+#define RESTORE_SIGNALS sigaction(SIGINT, &prev_action, NULL);
+#define REGISTER_SIGNALS \
+    sigIntHandler.sa_handler = interrupt_signal_handler; \
+    sigemptyset(&sigIntHandler.sa_mask); \
+    sigIntHandler.sa_flags = 0; \
+    sigaction(SIGINT, &sigIntHandler, &prev_action);
+
+#define CHECK_FOR_INTERRUPT             \
     if (kpkc_interrupted) {                              \
+        kpkc_interrupted = 0; \
+        RESTORE_SIGNALS \
+        sigaction(SIGINT, &prev_action, NULL); \
         throw runtime_error("computation with kpkc was interrupted"); \
 }
 
@@ -261,7 +277,8 @@ void KPartiteKClique::Vertex::init(KPartiteKClique* problem, const bool* inciden
     // the corresponding part will have one ``active_vertex``.
     bitset->set(index);
 
-    assert(1 == bitset->count(get_parts()[part], get_parts()[part + 1]));  // check that the graph is indeed k-partite
+    if (1 != bitset->count(get_parts()[part], get_parts()[part + 1]))
+        throw invalid_argument("the graph is not k-partite");
 }
 
 inline KPartiteKClique::Vertex::~Vertex(){
@@ -448,27 +465,32 @@ bool KPartiteKClique::next(){
     Set the next clique.
     Return whether there is a next clique.
     */
-    signal(SIGINT, &interrupt_signal_handler);
-    kpkc_interrupted = 0;
+    REGISTER_SIGNALS
+
     while (true){
         if (current_depth < k-1){
-            //if (kpkc_interrupted) return -1;
-            INTERRUPT_COMPUTATION_BY_EXCEPTION
+
+            CHECK_FOR_INTERRUPT
+
             if (!current_graph().select(next_graph())){
-                if (!backtrack())
+                if (!backtrack()){
                     // Out of options.
+                    RESTORE_SIGNALS
                     return false;
+                }
             }
         } else {
             Vertex* vpt = current_graph().last_vertex();
             if (!vpt){
                 if (!backtrack()){
                     // Out of options.
+                    RESTORE_SIGNALS
                     return false;
                 }
             } else {
                 _k_clique[vpt->part] = vpt->index;
                 current_graph().pop_last_vertex();
+                RESTORE_SIGNALS
                 return true;
             }
         }
@@ -491,7 +513,7 @@ KPartiteKClique::KPartiteKClique(const bool* const* incidences, const int n_vert
 }
 
 void KPartiteKClique::constructor(const bool* const* incidences, const int n_vertices, const int* first_per_part, const int k, const int prec_depth){
-    assert(k>0);
+    if (k <= 0) throw invalid_argument("k must be at least 1");
 
     current_depth = 0;
     this->prec_depth = prec_depth;
@@ -502,6 +524,12 @@ void KPartiteKClique::constructor(const bool* const* incidences, const int n_ver
         parts[i] = first_per_part[i];
     }
     parts[k] = n_vertices;
+
+    for (int i=0; i<k; i++){
+        if (parts[i+1] - parts[i] == 0)
+            throw invalid_argument("parts may not be empty");
+    }
+
     this->n_vertices = n_vertices;
     this->k = k;
 
@@ -597,7 +625,19 @@ bool KPartiteKClique::KPartiteGraph::select_bitCLQ(KPartiteKClique::KPartiteGrap
 
 bitCLQ::bitCLQ(const bool* const* incidences, const int n_vertices, const int* first_per_part, const int k, const int prec_depth){
     constructor(incidences, n_vertices, first_per_part, k, prec_depth);
-    recursive_graphs->set_part_sizes();
+
+    // Take care of trivial parts.
+    n_trivial_parts = 0;
+    for (int i=0; i<k; i++){
+        if (parts[i+1] - parts[i] == 1){
+            intersection(*(recursive_graphs->active_vertices), all_vertices[parts[i]], *(recursive_graphs->active_vertices));
+            n_trivial_parts++;
+            _k_clique[i] = parts[i];
+        }
+    }
+
+    if (!recursive_graphs->set_part_sizes())
+        current_graph().selected_part == -2;
 }
 
 bool bitCLQ::backtrack(){
@@ -618,19 +658,31 @@ bool bitCLQ::backtrack(){
 }
 
 bool bitCLQ::next(){
+    // The stupid case, where all parts have size 1.
+    if (n_trivial_parts == k){
+        if (current_graph().selected_part == -2)
+            return false;
+        current_graph().selected_part = -2;
+        return true;
+    }
+
+    REGISTER_SIGNALS
+
     // Set the next clique.
     // Return whether there is a next clique.
-    signal(SIGINT, &interrupt_signal_handler);
-    kpkc_interrupted = 0;
     while (true){
         if ((current_graph().selected_part == -2) \
-                || ((current_depth < k-1) && (!current_graph().select_bitCLQ(next_graph())))){
-            INTERRUPT_COMPUTATION_BY_EXCEPTION
-            if (!backtrack())
+                || ((current_depth < k - 1 - n_trivial_parts) && (!current_graph().select_bitCLQ(next_graph())))){
+
+            CHECK_FOR_INTERRUPT
+
+            if (!backtrack()){
                 // Out of options.
+                RESTORE_SIGNALS
                 return false;
+            }
         } else {
-            if (current_depth == k-1){
+            if (current_depth == k - 1 - n_trivial_parts){
                 // We are done. There is only one part left, for which we
                 // have choices.
                 // Each choice corresponds to a valid k-clique.
@@ -639,11 +691,13 @@ bool bitCLQ::next(){
                     _k_clique[selected_part] = current_graph().first(selected_part);
                     if (_k_clique[selected_part] != -1){
                         current_graph().pop_vertex(selected_part, _k_clique[selected_part]);
+                        RESTORE_SIGNALS
                         return true;
                     }
                 }
                 if (!backtrack()){
                     // Out of options.
+                    RESTORE_SIGNALS
                     return false;
                 }
             }
