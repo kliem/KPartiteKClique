@@ -633,11 +633,23 @@ bitCLQ::bitCLQ(const bool* const* incidences, const int n_vertices, const int* f
             intersection(*(recursive_graphs->active_vertices), all_vertices[parts[i]], *(recursive_graphs->active_vertices));
             n_trivial_parts++;
             _k_clique[i] = parts[i];
+
+            // The code assumes that a vertex is selected only, if it is still available.
+            // Above we just selected the loneley vertex of the part unconditionally.
+            // But it might not even be available anymore
+            // (if some previously selected lonely vertex isn't coneccted to it).
+            if (!recursive_graphs->active_vertices->has(parts[i])){
+                current_graph().selected_part = -2;
+                n_trivial_parts = k;
+                return;
+            }
         }
     }
 
-    if (!recursive_graphs->set_part_sizes())
-        current_graph().selected_part == -2;
+    if (!recursive_graphs->set_part_sizes()){
+        n_trivial_parts = k;
+        current_graph().selected_part = -2;
+    }
 }
 
 bool bitCLQ::backtrack(){
