@@ -19,21 +19,24 @@ void interrupt_signal_handler(int signal) {
 }
 
 struct sigaction prev_action;
+struct sigaction prev_action2;
 
 struct sigaction sigIntHandler;
 
-#define RESTORE_SIGNALS sigaction(SIGINT, &prev_action, NULL);
+#define RESTORE_SIGNALS sigaction(SIGINT, &prev_action, NULL); \
+                        sigaction(SIGALRM, &prev_action2, NULL);
+
 #define REGISTER_SIGNALS \
     sigIntHandler.sa_handler = interrupt_signal_handler; \
     sigemptyset(&sigIntHandler.sa_mask); \
     sigIntHandler.sa_flags = 0; \
-    sigaction(SIGINT, &sigIntHandler, &prev_action);
+    sigaction(SIGINT, &sigIntHandler, &prev_action); \
+    sigaction(SIGALRM, &sigIntHandler, &prev_action2);
 
 #define CHECK_FOR_INTERRUPT             \
     if (kpkc_interrupted) {                              \
         kpkc_interrupted = 0; \
         RESTORE_SIGNALS \
-        sigaction(SIGINT, &prev_action, NULL); \
         throw runtime_error("computation with kpkc was interrupted"); \
 }
 
