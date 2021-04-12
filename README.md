@@ -13,9 +13,9 @@ In particular the GCC suite supports it.
 
 # Usage
 
-## bitCLQ
+## FindClique
 
-We provide an implementation of `bitCLQ` that was first described in
+We provide an implementation of `FindClique` that was first described in
 
 - Grunert, Tore & Irnich, Stefan & Zimmermann, Hans-Jürgen & Schneider, Markus & Wulfhorst, Burkhard. (2001). Cliques in k-partite Graphs and their Application in Textile Engineering
 

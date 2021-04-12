@@ -79,7 +79,7 @@ class KPartiteKClique {
                 vector<Vertex> vertices;
                 Bitset* active_vertices;
                 int* part_sizes;
-                int selected_part;  // bitCLQ
+                int selected_part;  // FindClique
 
                 KPartiteGraph();
                 KPartiteGraph(const KPartiteGraph& obj){
@@ -98,9 +98,9 @@ class KPartiteKClique {
                 }
                 bool select(KPartiteGraph& next);
 
-                // Used by bitCLQ.
+                // Used by FindClique.
                 bool set_part_sizes();
-                bool select_bitCLQ(KPartiteGraph& next);
+                bool select_FindClique(KPartiteGraph& next);
                 inline int count(int start, int stop){
                     return active_vertices->count(start, stop);
                 }
@@ -148,12 +148,12 @@ class KPartiteKClique {
         void constructor(const bool* const* incidences, const int n_vertices, const int* first_per_part, const int k, const int prec_depth);
 };
 
-class bitCLQ : public KPartiteKClique {
+class FindClique : public KPartiteKClique {
     public:
-        bitCLQ(const bitCLQ& obj){
-            throw invalid_argument("bitCLQ cannot be copied");
+        FindClique(const FindClique& obj){
+            throw invalid_argument("FindClique cannot be copied");
         }
-        bitCLQ(const bool* const* incidences, const int n_vertices, const int* first_per_part, const int k, const int prec_depth=5);
+        FindClique(const bool* const* incidences, const int n_vertices, const int* first_per_part, const int k, const int prec_depth=5);
         bool next();
     protected:
         int n_trivial_parts;

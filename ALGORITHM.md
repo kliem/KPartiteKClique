@@ -1,13 +1,14 @@
 # General Approach
 
-## bitCLQ
+## FindClique
 
 To iterate over all k-cliques of a k-partite graph, there is a very
 natural approach that is also described in
 
 - Grunert, Tore & Irnich, Stefan & Zimmermann, Hans-Jürgen & Schneider, Markus & Wulfhorst, Burkhard. (2001). Cliques in k-partite Graphs and their Application in Textile Engineering
 
-and the follow up
+The following follow up proposes to use bitsets as a data structure and
+improves upon the implementation:
 
 - Mirghorbani, M. & Krokhmal, P.. (2013). On finding k-cliques in k-partite graphs. Optimization Letters. 7. 10.1007/s11590-012-0536-y
 
@@ -25,11 +26,16 @@ publication adds the use of bitsets:
 
 *Select an arbitrary vertex in the part with minimal size*
 
-We have implemented this algorithm `bitCLQ` as free software, as we could not find an available implementation.
+We have implemented this algorithm `FindClique` as free software, as we could not find an available implementation.
+
+While the later paper is an important improvement, we use the name
+`FindClique` as proposed in the earlier paper. It is the same algorithm
+and bitsets are a common data structure for graphs.
+
 
 ## KPartiteKClique
 
-`bitCLQ` performs especially well on graphs with
+`FindClique` performs especially well on graphs with
 somewhat equally distributed edges.
 
 However, we have encountered graphs that appear infeasible with this approach.

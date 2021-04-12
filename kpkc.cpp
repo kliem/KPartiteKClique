@@ -559,7 +559,7 @@ KPartiteKClique::~KPartiteKClique(){
 }
 
 
-// bitCLQ
+// FindClique
 
 inline bool KPartiteKClique::KPartiteGraph::set_part_sizes(){
     int i;
@@ -588,7 +588,7 @@ inline bool KPartiteKClique::KPartiteGraph::set_part_sizes(){
 }
 
 
-bool KPartiteKClique::KPartiteGraph::select_bitCLQ(KPartiteKClique::KPartiteGraph& next){
+bool KPartiteKClique::KPartiteGraph::select_FindClique(KPartiteKClique::KPartiteGraph& next){
     /*
     Select the first vertex in the smallest part.
 
@@ -626,7 +626,7 @@ bool KPartiteKClique::KPartiteGraph::select_bitCLQ(KPartiteKClique::KPartiteGrap
     return next.set_part_sizes();
 }
 
-bitCLQ::bitCLQ(const bool* const* incidences, const int n_vertices, const int* first_per_part, const int k, const int prec_depth){
+FindClique::FindClique(const bool* const* incidences, const int n_vertices, const int* first_per_part, const int k, const int prec_depth){
     constructor(incidences, n_vertices, first_per_part, k, prec_depth);
 
     // Take care of trivial parts.
@@ -655,7 +655,7 @@ bitCLQ::bitCLQ(const bool* const* incidences, const int n_vertices, const int* f
     }
 }
 
-bool bitCLQ::backtrack(){
+bool FindClique::backtrack(){
     /*
     Go to the the last valid graph.
 
@@ -672,7 +672,7 @@ bool bitCLQ::backtrack(){
     return false;
 }
 
-bool bitCLQ::next(){
+bool FindClique::next(){
     // The stupid case, where all parts have size 1.
     if (n_trivial_parts == k){
         if (current_graph().selected_part == -2)
@@ -687,7 +687,7 @@ bool bitCLQ::next(){
     // Return whether there is a next clique.
     while (true){
         if ((current_graph().selected_part == -2) \
-                || ((current_depth < k - 1 - n_trivial_parts) && (!current_graph().select_bitCLQ(next_graph())))){
+                || ((current_depth < k - 1 - n_trivial_parts) && (!current_graph().select_FindClique(next_graph())))){
 
             CHECK_FOR_INTERRUPT
 
