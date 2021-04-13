@@ -267,7 +267,7 @@ inline KPartiteKClique::Vertex::Vertex(const Vertex& obj){
 }
 
 void KPartiteKClique::Vertex::init(KPartiteKClique* problem, const bool* incidences, int n_vertices, int part, int index){
-    assert(is_shallow);
+    if (!is_shallow) throw invalid_argument("trying to initialize an already initialized vertex");
     bitset = new Bitset(incidences, n_vertices);
     is_shallow = false;
     weight = -1;
@@ -366,6 +366,7 @@ inline bool KPartiteKClique::KPartiteGraph::is_valid(){
 }
 
 void KPartiteKClique::KPartiteGraph::init(KPartiteKClique* problem, bool fill){
+    if (active_vertices) throw invalid_argument("trying to initialize an already initialized KPartiteGraph");
     active_vertices = new Bitset(problem->n_vertices, fill);
     part_sizes = new int[problem->k+1];
     for (int i=0; i < problem->k; i++){
@@ -508,6 +509,7 @@ void KPartiteKClique::constructor(){
 }
 
 void KPartiteKClique::init(const bool* const* incidences, const int n_vertices, const int* first_per_part, const int k, const int prec_depth){
+    if (_k_clique) throw invalid_argument("trying to initialize an already initialized KPartiteKClique instance");
     constructor(incidences, n_vertices, first_per_part, k, prec_depth);
     if (recursive_graphs->set_weights())
         recursive_graphs->set_weights();
