@@ -474,6 +474,7 @@ bool KPartiteKClique::next(){
     while (true){
         if (current_depth < k-1){
 
+            // Note that the interrupt can also be abused to pause.
             CHECK_FOR_INTERRUPT
 
             if (!current_graph().select(next_graph())){
@@ -690,14 +691,15 @@ bool FindClique::next(){
     while (true){
         if ((current_graph().selected_part == -2) \
                 || ((current_depth < k - 1 - n_trivial_parts) && (!current_graph().select_FindClique(next_graph())))){
-
-            CHECK_FOR_INTERRUPT
-
             if (!backtrack()){
                 // Out of options.
                 RESTORE_SIGNALS
                 return false;
             }
+
+            // Note that the interrupt can also be abused to pause.
+            CHECK_FOR_INTERRUPT
+
         } else {
             if (current_depth == k - 1 - n_trivial_parts){
                 // We are done. There is only one part left, for which we
