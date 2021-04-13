@@ -507,7 +507,7 @@ void KPartiteKClique::constructor(){
     recursive_graphs = NULL;
 }
 
-KPartiteKClique::KPartiteKClique(const bool* const* incidences, const int n_vertices, const int* first_per_part, const int k, const int prec_depth){
+void KPartiteKClique::init(const bool* const* incidences, const int n_vertices, const int* first_per_part, const int k, const int prec_depth){
     constructor(incidences, n_vertices, first_per_part, k, prec_depth);
     if (recursive_graphs->set_weights())
         recursive_graphs->set_weights();
@@ -626,7 +626,7 @@ bool KPartiteKClique::KPartiteGraph::select_FindClique(KPartiteKClique::KPartite
     return next.set_part_sizes();
 }
 
-FindClique::FindClique(const bool* const* incidences, const int n_vertices, const int* first_per_part, const int k, const int prec_depth){
+void FindClique::init(const bool* const* incidences, const int n_vertices, const int* first_per_part, const int k, const int prec_depth){
     constructor(incidences, n_vertices, first_per_part, k, prec_depth);
 
     // Take care of trivial parts.

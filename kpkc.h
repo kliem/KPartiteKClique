@@ -125,12 +125,12 @@ class KPartiteKClique {
 
     public:
         const int* k_clique(){ return _k_clique; }
-        KPartiteKClique(const bool* const* incidences, const int n_vertices, const int* first_per_part, const int k, const int prec_depth=5);
         KPartiteKClique(const KPartiteKClique& obj){
             throw invalid_argument("KPartiteKClique cannot be copied");
         }
         KPartiteKClique() { constructor(); }
         ~KPartiteKClique();
+        void init(const bool* const* incidences, const int n_vertices, const int* first_per_part, const int k, const int prec_depth=5);
         bool next();
     protected:
         int* _k_clique;
@@ -150,10 +150,10 @@ class KPartiteKClique {
 
 class FindClique : public KPartiteKClique {
     public:
-        FindClique(const FindClique& obj){
-            throw invalid_argument("FindClique cannot be copied");
-        }
-        FindClique(const bool* const* incidences, const int n_vertices, const int* first_per_part, const int k, const int prec_depth=5);
+
+        FindClique(const FindClique& obj) : KPartiteKClique(obj) {}
+        FindClique() : KPartiteKClique() {}
+        void init(const bool* const* incidences, const int n_vertices, const int* first_per_part, const int k, const int prec_depth=5);
         bool next();
     protected:
         int n_trivial_parts;
