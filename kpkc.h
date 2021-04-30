@@ -24,7 +24,7 @@ class Bitset {
         int count(int start, int stop);
         int first(int start);
         void intersection_assign(Bitset& l, Bitset& r);
-    private:
+    protected:
         uint64_t* data;
         int limbs;
         void allocate(int n_vertices);
