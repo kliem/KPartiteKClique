@@ -249,28 +249,10 @@ void Bitset::allocate(int n_vertices){
     data = new uint64_t[limbs];
 }
 
+// Vertex_template
 
-// Vertex
-
-KPartiteKClique::Vertex::Vertex(){
-    is_shallow = true;
-}
-
-inline KPartiteKClique::Vertex::Vertex(const Vertex& obj){
-    // Make a shallow copy.
-    bitset = obj.bitset;
-    is_shallow = true;
-    weight = obj.weight;
-    part = obj.part;
-    index = obj.index;
-    problem = obj.problem;
-}
-
-void KPartiteKClique::Vertex::init(KPartiteKClique* problem, const bool* incidences, int n_vertices, int part, int index){
-    if (!is_shallow) throw invalid_argument("trying to initialize an already initialized vertex");
+KPartiteKClique::Vertex_template::Vertex_template(KPartiteKClique* problem, const bool* incidences, int n_vertices, int part, int index){
     bitset = new Bitset(incidences, n_vertices);
-    is_shallow = false;
-    weight = -1;
     this->part = part;
     this->index = index;
     this->problem = problem;
@@ -279,15 +261,31 @@ void KPartiteKClique::Vertex::init(KPartiteKClique* problem, const bool* inciden
     // This is important, so that after selecting a vertex
     // the corresponding part will have one ``active_vertex``.
     bitset->set(index);
+}
+
+inline KPartiteKClique::Vertex_template::~Vertex_template(){
+    delete bitset;
+}
+
+void swap(KPartiteKClique::Vertex_template& a, KPartiteKClique::Vertex_template& b){
+    swap(a.bitset, b.bitset);
+    swap(a.part, b.part);
+    swap(a.index, b.index);
+    swap(a.problem, b.problem);
+}
+
+
+// Vertex
+
+inline KPartiteKClique::Vertex::Vertex(const Vertex_template& obj){
+    bitset = obj.bitset;
+    weight = -1;
+    part = obj.part;
+    index = obj.index;
+    problem = obj.problem;
 
     if (1 != bitset->count(get_parts()[part], get_parts()[part + 1]))
         throw invalid_argument("the graph is not k-partite");
-}
-
-inline KPartiteKClique::Vertex::~Vertex(){
-    if (!is_shallow){
-        delete bitset;
-    }
 }
 
 inline bool KPartiteKClique::Vertex::set_weight(){
@@ -543,12 +541,13 @@ void KPartiteKClique::constructor(const bool* const* incidences, const int n_ver
     for (int i=0; i<k; i++)
         recursive_graphs[i].init(this, i==0);
 
-    all_vertices = new Vertex[n_vertices];
+    all_vertices = new Vertex_template[n_vertices];
     int current_part = 0;
     for (int i=0; i<n_vertices; i++){
         while ((current_part < k-1) && (i >= parts[current_part + 1]))
             current_part += 1;
-        all_vertices[i].init(this, incidences[i], n_vertices, current_part, i);
+        Vertex_template tmp = Vertex_template(this, incidences[i], n_vertices, current_part, i);
+        swap(tmp, all_vertices[i]);
     }
     recursive_graphs->vertices.assign(all_vertices, all_vertices + n_vertices);
 }

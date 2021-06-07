@@ -35,6 +35,34 @@ class KPartiteKClique;
 
 class KPartiteKClique {
     private:
+        class Vertex;
+
+        class Vertex_template {
+            // Takes care of the memory allocation for vertices.
+            friend Vertex;
+            inline friend void intersection(Bitset& c, Vertex_template& l, Bitset& r){
+                c.intersection_assign(*(l.bitset), r);
+            }
+            friend void swap(Vertex_template& a, Vertex_template& b);
+
+            public:
+                int index;  // The index in the original graph.
+                int part;  // The part in the orginal graph.
+
+                Vertex_template() { bitset = NULL;}
+                Vertex_template(const Vertex_template& obj){
+                    throw invalid_argument("vertex template cannot be copied");
+                }
+                Vertex_template(KPartiteKClique* problem, const bool* incidences, int n_vertices, int part, int index);
+                ~Vertex_template();
+
+            private:
+                Bitset* bitset;
+                KPartiteKClique* problem;
+        };
+
+        friend void swap(Vertex_template& a, Vertex_template& b);
+
         class Vertex {
             inline friend bool operator<(const Vertex& l, const Vertex& r){
                 // The lower the weight, the higher the obstruction when
@@ -52,10 +80,8 @@ class KPartiteKClique {
                 int part;  // The part in the orginal graph.
                 int weight;  // The higher, the higher the likelihood of a k-clique with this vertex.
 
-                Vertex();
-                Vertex(const Vertex& obj);
-                void init(KPartiteKClique* problem, const bool* incidences, int n_vertices, int part, int index);
-                ~Vertex();
+                Vertex() {}
+                Vertex(const Vertex_template& obj);
                 bool set_weight();
                 inline int intersection_count(Bitset& r, int start, int stop){
                     return bitset->intersection_count(r, start, stop);
@@ -65,7 +91,6 @@ class KPartiteKClique {
                 }
 
             private:
-                bool is_shallow;
                 Bitset* bitset;
                 KPartiteKClique* problem;
                 inline const int* get_parts() { return problem->parts; }
@@ -139,7 +164,7 @@ class KPartiteKClique {
         int current_depth;
         int n_vertices;
         int prec_depth;
-        Vertex* all_vertices;
+        Vertex_template* all_vertices;
         KPartiteGraph* recursive_graphs;
         KPartiteGraph& current_graph(){ return recursive_graphs[current_depth]; }
         KPartiteGraph& next_graph(){ return recursive_graphs[current_depth + 1]; }
