@@ -4,7 +4,6 @@
 #include <cstdint>
 #include <vector>
 #include <cassert>
-#include <stdexcept>
 using namespace std;
 
 class Bitset;
@@ -13,9 +12,8 @@ class Bitset {
     public:
         Bitset(int n_vertices, bool fill=false);
         Bitset(const bool* set_bits, int n_vertices);
-        Bitset(const Bitset& obj){
-            throw invalid_argument("bitsets cannot be copied");
-        }
+        Bitset(const Bitset&) = delete;
+        Bitset& operator=(const Bitset&) = delete;
         ~Bitset();
         void unset(int index);
         bool has(int index);
@@ -49,10 +47,8 @@ class KPartiteKClique {
                 int index;  // The index in the original graph.
                 int part;  // The part in the orginal graph.
 
-                Vertex_template() { bitset = NULL;}
-                Vertex_template(const Vertex_template& obj){
-                    throw invalid_argument("vertex template cannot be copied");
-                }
+                Vertex_template() { bitset = NULL; }
+                Vertex_template(const Vertex_template&) = delete;
                 Vertex_template(KPartiteKClique* problem, const bool* incidences, int n_vertices, int part, int index);
                 ~Vertex_template();
 
@@ -107,9 +103,8 @@ class KPartiteKClique {
                 int selected_part;  // FindClique
 
                 KPartiteGraph();
-                KPartiteGraph(const KPartiteGraph& obj){
-                    throw invalid_argument("KPartiteGraph cannot be copied");
-                }
+                KPartiteGraph(const KPartiteGraph&) = delete;
+                KPartiteGraph& operator=(const KPartiteGraph&) = delete;
                 void init(KPartiteKClique* problem, bool fill);
                 ~KPartiteGraph();
                 Vertex* last_vertex();
@@ -150,9 +145,8 @@ class KPartiteKClique {
 
     public:
         const int* k_clique(){ return _k_clique; }
-        KPartiteKClique(const KPartiteKClique& obj){
-            throw invalid_argument("KPartiteKClique cannot be copied");
-        }
+        KPartiteKClique(const KPartiteKClique&) = delete;
+        KPartiteKClique& operator=(const KPartiteKClique&) = delete;
         KPartiteKClique() { constructor(); }
         ~KPartiteKClique();
         void init(const bool* const* incidences, const int n_vertices, const int* first_per_part, const int k, const int prec_depth=5);
@@ -176,7 +170,8 @@ class KPartiteKClique {
 class FindClique : public KPartiteKClique {
     public:
 
-        FindClique(const FindClique& obj) : KPartiteKClique(obj) {}
+        FindClique(const FindClique&) = delete;
+        FindClique& operator=(const FindClique&) = delete;
         FindClique() : KPartiteKClique() {}
         void init(const bool* const* incidences, const int n_vertices, const int* first_per_part, const int k, const int prec_depth=5);
         bool next();
