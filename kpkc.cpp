@@ -547,9 +547,8 @@ void KPartiteKClique::constructor(const bool* const* incidences, const int n_ver
     for (int i=0; i<n_vertices; i++){
         while ((current_part < k-1) && (i >= parts[current_part + 1]))
             current_part += 1;
-        Vertex_template* tmp = new Vertex_template(this, incidences[i], n_vertices, current_part, i);
-        swap(*tmp, all_vertices[i]);
-        delete tmp;
+        Vertex_template tmp(this, incidences[i], n_vertices, current_part, i);
+        swap(tmp, all_vertices[i]);
     }
     recursive_graphs->vertices.assign(all_vertices, all_vertices + n_vertices);
 }
