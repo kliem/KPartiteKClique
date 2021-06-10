@@ -251,12 +251,6 @@ void Bitset::allocate(int n_vertices){
 
 // KPartiteKClique_base
 
-KPartiteKClique_base::KPartiteKClique_base(){
-    _k_clique = NULL;
-    parts = NULL;
-    all_vertices = NULL;
-}
-
 KPartiteKClique_base::KPartiteKClique_base(const bool* const* incidences, const int n_vertices, const int* first_per_part, const int k){
     if (k <= 0) throw invalid_argument("k must be at least 1");
 

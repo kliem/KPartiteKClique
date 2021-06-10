@@ -34,7 +34,6 @@ class KPartiteKClique_base {
         class Vertex_template;
         class KPartiteGraph;
     public:
-        KPartiteKClique_base();
         KPartiteKClique_base(const bool* const* incidences, const int n_vertices, const int* first_per_part, const int k);
         ~KPartiteKClique_base();
         const int* k_clique(){ return _k_clique; }
@@ -62,7 +61,6 @@ class KPartiteKClique : public KPartiteKClique_base {
     class KPartiteGraph;
 
     public:
-        KPartiteKClique() : KPartiteKClique_base() { recursive_graphs = NULL; }
         KPartiteKClique(const bool* const* incidences, const int n_vertices, const int* first_per_part, const int k, const int prec_depth=5);
         ~KPartiteKClique();
         bool next();
@@ -85,7 +83,6 @@ class FindClique : public KPartiteKClique_base {
     class KPartiteGraph;
 
     public:
-        FindClique() : KPartiteKClique_base() { recursive_graphs = NULL; }
         FindClique(const bool* const* incidences, const int n_vertices, const int* first_per_part, const int k);
         ~FindClique();
         bool next();
