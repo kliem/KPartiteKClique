@@ -59,7 +59,6 @@ class KPartiteKClique_base {
         void swap(KPartiteGraph& a, KPartiteGraph& b);
 };
 
-
 class KPartiteKClique : public KPartiteKClique_base {
     friend KPartiteKClique_base::Vertex_template;
 
@@ -110,6 +109,31 @@ class FindClique : public KPartiteKClique_base {
         void swap(KPartiteGraph& a, KPartiteGraph& b);
 };
 
+class KPartiteKClique_base::Vertex_template {
+    // Takes care of the memory allocation for vertices.
+    friend KPartiteKClique;
+    friend KPartiteKClique::Vertex;
+    friend FindClique;
+    friend void KPartiteKClique_base::swap(Vertex_template& a, Vertex_template& b);
+
+    inline friend void intersection(Bitset& c, Vertex_template& l, Bitset& r){
+        c.intersection_assign(*(l.bitset), r);
+    }
+
+    public:
+        int index;  // The index in the original graph.
+        int part;  // The part in the orginal graph.
+
+        Vertex_template() { bitset = NULL; }
+        Vertex_template(const Vertex_template&) = delete;
+        Vertex_template(KPartiteKClique_base* problem, const bool* incidences, int n_vertices, int part, int index);
+        ~Vertex_template();
+
+    protected:
+        Bitset* bitset;
+        KPartiteKClique_base* problem;
+};
+
 class KPartiteKClique_base::KPartiteGraph {
     friend void KPartiteKClique_base::swap(KPartiteGraph& a, KPartiteGraph& b);
     public:
@@ -131,32 +155,6 @@ class KPartiteKClique_base::KPartiteGraph {
         KPartiteKClique_base::KPartiteGraph* next_graph(){ return problem->next_graph(); }
         KPartiteKClique_base* problem;
 };
-
-class KPartiteKClique_base::Vertex_template {
-    // Takes care of the memory allocation for vertices.
-    friend KPartiteKClique;
-    friend KPartiteKClique::Vertex;
-    friend FindClique;
-    inline friend void intersection(Bitset& c, Vertex_template& l, Bitset& r){
-        c.intersection_assign(*(l.bitset), r);
-    }
-    friend void KPartiteKClique_base::swap(Vertex_template& a, Vertex_template& b);
-    friend void swap(int*, int*);
-
-    public:
-        int index;  // The index in the original graph.
-        int part;  // The part in the orginal graph.
-
-        Vertex_template() { bitset = NULL; }
-        Vertex_template(const Vertex_template&) = delete;
-        Vertex_template(KPartiteKClique_base* problem, const bool* incidences, int n_vertices, int part, int index);
-        ~Vertex_template();
-
-    protected:
-        Bitset* bitset;
-        KPartiteKClique_base* problem;
-};
-
 
 class KPartiteKClique::Vertex {
     inline friend bool operator<(const Vertex& l, const Vertex& r){
