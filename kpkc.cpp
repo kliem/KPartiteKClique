@@ -366,16 +366,13 @@ bool KPartiteKClique::next(){
                 }
             }
         } else {
-            Vertex* vpt = current_graph_upcast()->last_vertex();
-            if (!vpt){
+            if (!current_graph()->select()){
                 if (!backtrack()){
                     // Out of options.
                     RESTORE_SIGNALS
                     return false;
                 }
             } else {
-                _k_clique[vpt->part] = vpt->index;
-                current_graph_upcast()->pop_last_vertex();
                 RESTORE_SIGNALS
                 return true;
             }
@@ -438,35 +435,33 @@ bool FindClique::next(){
     // Set the next clique.
     // Return whether there is a next clique.
     while (true){
-        if ((current_graph_upcast()->selected_part == -2) \
-                || ((current_depth < k - 1 - n_trivial_parts) && (!current_graph_upcast()->select(next_graph())))){
-            if (!backtrack()){
-                // Out of options.
-                RESTORE_SIGNALS
-                return false;
-            }
+        if (current_depth < k - 1 - n_trivial_parts){
 
             // Note that the interrupt can also be abused to pause.
             CHECK_FOR_INTERRUPT
+
+            if(!current_graph()->select(next_graph())){
+                if (!backtrack()){
+                    // Out of options.
+                    RESTORE_SIGNALS
+                    return false;
+                }
+            }
 
         } else {
             if (current_depth == k - 1 - n_trivial_parts){
                 // We are done. There is only one part left, for which we
                 // have choices.
                 // Each choice corresponds to a valid k-clique.
-                int selected_part = current_graph_upcast()->selected_part;
-                if (current_graph()->part_sizes[selected_part]){
-                    _k_clique[selected_part] = current_graph_upcast()->first(selected_part);
-                    if (_k_clique[selected_part] != -1){
-                        current_graph_upcast()->pop_vertex(selected_part, _k_clique[selected_part]);
+                if (!current_graph()->select()){
+                    if (!backtrack()){
+                        // Out of options.
                         RESTORE_SIGNALS
-                        return true;
+                        return false;
                     }
-                }
-                if (!backtrack()){
-                    // Out of options.
+                } else {
                     RESTORE_SIGNALS
-                    return false;
+                    return true;
                 }
             }
         }
@@ -528,6 +523,10 @@ bool KPartiteKClique_base::KPartiteGraph::set_weights(){
 }
 
 bool KPartiteKClique_base::KPartiteGraph::select(KPartiteKClique_base::KPartiteGraph* next){
+    throw runtime_error("a derived class must implement this");
+}
+
+bool KPartiteKClique_base::KPartiteGraph::select(){
     throw runtime_error("a derived class must implement this");
 }
 
@@ -716,6 +715,31 @@ bool KPartiteKClique::KPartiteGraph::select(KPartiteKClique_base::KPartiteGraph*
     return true;
 }
 
+bool KPartiteKClique::KPartiteGraph::select(){
+    /*
+    Select the last (valid) vertex of the current graph and return
+    whether it exists.
+
+    It is assumed that there is no next graph.
+    */
+    Vertex* v = last_vertex();
+    if (!v)
+        return false;
+
+    // Select v.
+    problem->_k_clique[v->part] = v->index;
+    int part = v->part;
+
+    // v may no longer be selected.
+    // In current not, because we have removed it.
+    pop_last_vertex();
+
+    if (part_sizes[part] == 0)
+        vertices.resize(0);
+
+    return true;
+}
+
 // KPartiteGraph in FindClique
 
 FindClique::KPartiteGraph::KPartiteGraph(FindClique* problem, bool fill) : KPartiteKClique_base::KPartiteGraph::KPartiteGraph((KPartiteKClique_base*) problem, fill){
@@ -784,6 +808,30 @@ bool FindClique::KPartiteGraph::select(KPartiteKClique_base::KPartiteGraph* next
     problem->current_depth += 1;
 
     return next->set_weights();
+}
+
+bool FindClique::KPartiteGraph::select(){
+    /*
+    Select the first vertex in the smallest part.
+    Return false, if there are no vertices left.
+
+    It is assumed that there is no next graph.
+    */
+    assert(selected_part != -1); // Should not be called, if we found a clique already.
+    if (!part_sizes[selected_part])
+        return false;
+
+    // Select v.
+    int v = first(selected_part);
+    if (v == -1) return false;
+
+    // v may no longer be selected.
+    // In current not, because we have removed it.
+    // In next not, because it is selected already
+    pop_vertex(selected_part, v);
+    problem->_k_clique[selected_part] = v;
+
+    return true;
 }
 
 KPartiteKClique_base::KPartiteGraph* FindClique::current_graph(){

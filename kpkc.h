@@ -136,6 +136,7 @@ class KPartiteKClique_base::KPartiteGraph {
         virtual bool is_valid();
         virtual bool set_weights();
         virtual bool select(KPartiteGraph* next);
+        virtual bool select();
 
     protected:
         inline const int* get_parts() { assert(problem); return problem->parts; }
@@ -200,6 +201,7 @@ class KPartiteKClique::KPartiteGraph : KPartiteKClique_base::KPartiteGraph {
             return new_knowledge;
         }
         bool select(KPartiteKClique_base::KPartiteGraph* next2);
+        bool select();
     protected:
         KPartiteKClique* problem;
 };
@@ -216,6 +218,7 @@ class FindClique::KPartiteGraph : KPartiteKClique_base::KPartiteGraph {
         ~KPartiteGraph() {}
         bool is_valid();
         bool select(KPartiteKClique_base::KPartiteGraph* next2);
+        bool select();
         bool set_weights();
         inline int count(int start, int stop){
             return active_vertices->count(start, stop);
