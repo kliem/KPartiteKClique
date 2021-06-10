@@ -33,75 +33,67 @@ class KPartiteKClique_base {
     protected:
         class Vertex_template;
         class KPartiteGraph;
-
     public:
+        KPartiteKClique_base();
+        KPartiteKClique_base(const bool* const* incidences, const int n_vertices, const int* first_per_part, const int k);
+        ~KPartiteKClique_base();
         const int* k_clique(){ return _k_clique; }
+        virtual bool next();
+
         KPartiteKClique_base(const KPartiteKClique_base&) = delete;
         KPartiteKClique_base& operator=(const KPartiteKClique_base&) = delete;
-        KPartiteKClique_base() { constructor(); }
-        ~KPartiteKClique_base();
-        virtual void init(const bool* const* incidences, const int n_vertices, const int* first_per_part, const int k, const int prec_depth=5);
-        virtual bool next();
     protected:
         int* _k_clique;
         int* parts;
         int k;
         int current_depth;
-        int prec_depth;
         int n_vertices;
         Vertex_template* all_vertices;
         virtual KPartiteGraph* current_graph();
         virtual KPartiteGraph* next_graph();
-        virtual bool backtrack();
-        void constructor();
-        void constructor(const bool* const* incidences, const int n_vertices, const int* first_per_part, const int k, const int prec_depth);
+        bool backtrack();
         void swap(Vertex_template& a, Vertex_template& b);
         void swap(KPartiteGraph& a, KPartiteGraph& b);
 };
 
 class KPartiteKClique : public KPartiteKClique_base {
     friend KPartiteKClique_base::Vertex_template;
-
-    private:
-        class Vertex;
-
-    protected:
-        class KPartiteGraph;
+    class Vertex;
+    class KPartiteGraph;
 
     public:
-        const int* k_clique(){ return _k_clique; }
+        KPartiteKClique() : KPartiteKClique_base() { recursive_graphs = NULL; }
+        KPartiteKClique(const bool* const* incidences, const int n_vertices, const int* first_per_part, const int k, const int prec_depth=5);
+        ~KPartiteKClique();
+        bool next();
+
         KPartiteKClique(const KPartiteKClique&) = delete;
         KPartiteKClique& operator=(const KPartiteKClique&) = delete;
-        KPartiteKClique() { constructor(); recursive_graphs = NULL; }
-        ~KPartiteKClique();
-        void init(const bool* const* incidences, const int n_vertices, const int* first_per_part, const int k, const int prec_depth=5);
-        bool next();
-    protected:
+    private:
         using KPartiteKClique_base::_k_clique;
         using KPartiteKClique_base::all_vertices;
+        int prec_depth;
         KPartiteGraph* recursive_graphs;
         KPartiteKClique_base::KPartiteGraph* current_graph();
         KPartiteGraph* current_graph_upcast(){ return (KPartiteGraph*) current_graph();}
         KPartiteKClique_base::KPartiteGraph* next_graph();
-        bool backtrack();
         void swap(KPartiteGraph& a, KPartiteGraph& b);
 };
 
 class FindClique : public KPartiteKClique_base {
     friend void swap(KPartiteGraph& a, KPartiteGraph& b);
-    protected:
-        class KPartiteGraph;
+    class KPartiteGraph;
 
     public:
+        FindClique() : KPartiteKClique_base() { recursive_graphs = NULL; }
+        FindClique(const bool* const* incidences, const int n_vertices, const int* first_per_part, const int k);
+        ~FindClique();
+        bool next();
+
         FindClique(const FindClique&) = delete;
         FindClique& operator=(const FindClique&) = delete;
-        FindClique() : KPartiteKClique_base() { constructor(); recursive_graphs = NULL; }
-        ~FindClique();
-        void init(const bool* const* incidences, const int n_vertices, const int* first_per_part, const int k, const int prec_depth=5);
-        bool next();
-    protected:
+    private:
         int n_trivial_parts;
-        bool backtrack();
         KPartiteGraph* recursive_graphs;
         KPartiteKClique_base::KPartiteGraph* current_graph();
         KPartiteGraph* current_graph_upcast(){ return (KPartiteGraph*) current_graph();}
