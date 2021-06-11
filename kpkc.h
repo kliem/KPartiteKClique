@@ -72,7 +72,6 @@ class KPartiteKClique : public KPartiteKClique_base {
         int prec_depth;
         KPartiteGraph* recursive_graphs;
         KPartiteKClique_base::KPartiteGraph* current_graph();
-        KPartiteGraph* current_graph_upcast(){ return (KPartiteGraph*) current_graph();}
         KPartiteKClique_base::KPartiteGraph* next_graph();
         void swap(KPartiteGraph& a, KPartiteGraph& b);
 };
@@ -90,7 +89,6 @@ class FindClique : public KPartiteKClique_base {
     private:
         KPartiteGraph* recursive_graphs;
         KPartiteKClique_base::KPartiteGraph* current_graph();
-        KPartiteGraph* current_graph_upcast(){ return (KPartiteGraph*) current_graph();}
         KPartiteKClique_base::KPartiteGraph* next_graph();
         void swap(KPartiteGraph& a, KPartiteGraph& b);
 };
