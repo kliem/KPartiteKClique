@@ -303,7 +303,7 @@ bool KPartiteKClique_base::backtrack(){
     */
     while (current_depth >= 1){
         current_depth -= 1;
-        if (current_graph()->is_valid())
+        if (current_graph()->permits_another_choice())
             return true;
     }
     return false;
@@ -452,7 +452,7 @@ KPartiteKClique_base::KPartiteGraph::~KPartiteGraph(){
     delete[] part_sizes;
 }
 
-bool KPartiteKClique_base::KPartiteGraph::is_valid(){
+bool KPartiteKClique_base::KPartiteGraph::permits_another_choice(){
     throw runtime_error("a derived class must implement this");
 }
 
@@ -575,10 +575,7 @@ inline KPartiteKClique::Vertex* KPartiteKClique::KPartiteGraph::last_vertex(){
     return &v;
 }
 
-inline bool KPartiteKClique::KPartiteGraph::is_valid(){
-    /*
-    Return if none of the parts are empty.
-    */
+inline bool KPartiteKClique::KPartiteGraph::permits_another_choice(){
     for (int i=0; i<get_k(); i++){
         if (part_sizes[i] == 0)
             return false;
@@ -783,10 +780,7 @@ KPartiteKClique_base::KPartiteGraph* FindClique::next_graph(){
     return (KPartiteKClique_base::KPartiteGraph*) &(recursive_graphs[current_depth + 1]);
 }
 
-inline bool FindClique::KPartiteGraph::is_valid(){
-    /*
-    Return whether there was a choice to be made.
-    */
+inline bool FindClique::KPartiteGraph::permits_another_choice(){
     return (selected_part >= 0);
 }
 

@@ -130,7 +130,7 @@ class KPartiteKClique_base::KPartiteGraph {
         KPartiteGraph& operator=(const KPartiteGraph&) = delete;
         KPartiteGraph(KPartiteKClique_base* problem, bool fill);
         virtual ~KPartiteGraph();
-        virtual bool is_valid();
+        virtual bool permits_another_choice();
         virtual bool select(KPartiteGraph* next);
         virtual bool select();
 
@@ -142,6 +142,7 @@ class KPartiteKClique_base::KPartiteGraph {
         KPartiteKClique_base* problem;
 };
 
+// Vertex is a shallow copy of Vertex_template.
 class KPartiteKClique::Vertex {
     inline friend bool operator<(const Vertex& l, const Vertex& r){
         // The lower the weight, the higher the obstruction when
@@ -189,7 +190,7 @@ class KPartiteKClique::KPartiteGraph : KPartiteKClique_base::KPartiteGraph {
         ~KPartiteGraph() {}
         Vertex* last_vertex();
         void pop_last_vertex();
-        bool is_valid();
+        bool permits_another_choice();
         inline bool set_weights(){
             bool new_knowledge = false;
             for(Vertex& v: vertices)
@@ -212,7 +213,7 @@ class FindClique::KPartiteGraph : KPartiteKClique_base::KPartiteGraph {
         KPartiteGraph& operator=(const KPartiteGraph&) = delete;
         KPartiteGraph(FindClique* problem, bool fill);
         ~KPartiteGraph() {}
-        bool is_valid();
+        bool permits_another_choice();
         bool select(KPartiteKClique_base::KPartiteGraph* next2);
         bool select();
         bool set_part_sizes();
