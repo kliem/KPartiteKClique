@@ -129,7 +129,7 @@ class KPartiteKClique_base::KPartiteGraph {
         KPartiteGraph(const KPartiteGraph&) = delete;
         KPartiteGraph& operator=(const KPartiteGraph&) = delete;
         KPartiteGraph(KPartiteKClique_base* problem, bool fill);
-        ~KPartiteGraph();
+        virtual ~KPartiteGraph();
         virtual bool is_valid();
         virtual bool select(KPartiteGraph* next);
         virtual bool select();
