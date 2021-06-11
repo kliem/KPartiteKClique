@@ -310,42 +310,6 @@ bool KPartiteKClique_base::backtrack(){
 }
 
 bool KPartiteKClique_base::next(){
-    throw runtime_error("a derived class must implement this");
-}
-
-// KPartiteKClique
-
-KPartiteKClique::KPartiteKClique(const bool* const* incidences, const int n_vertices, const int* first_per_part, const int k, const int prec_depth)
-        : KPartiteKClique_base::KPartiteKClique_base(incidences, n_vertices, first_per_part, k){
-    this->prec_depth = prec_depth;
-
-    recursive_graphs = new KPartiteGraph[k];
-    for (int i=0; i<k; i++){
-        KPartiteGraph tmp(this, i==0);
-        swap(tmp, recursive_graphs[i]);
-    }
-    recursive_graphs->vertices.assign(all_vertices, all_vertices + n_vertices);
-
-
-    if (recursive_graphs->set_weights())
-        recursive_graphs->set_weights();
-
-    sort(recursive_graphs->vertices.begin(), recursive_graphs->vertices.end());
-}
-
-KPartiteKClique::~KPartiteKClique(){
-    delete[] recursive_graphs;
-}
-
-KPartiteKClique_base::KPartiteGraph* KPartiteKClique::current_graph(){
-    return (KPartiteKClique_base::KPartiteGraph*) &(recursive_graphs[current_depth]);
-}
-
-KPartiteKClique_base::KPartiteGraph* KPartiteKClique::next_graph(){
-    return (KPartiteKClique_base::KPartiteGraph*) &(recursive_graphs[current_depth + 1]);
-}
-
-bool KPartiteKClique::next(){
     /*
     Set the next clique.
     Return whether there is a next clique.
@@ -380,6 +344,39 @@ bool KPartiteKClique::next(){
     }
 }
 
+// KPartiteKClique
+
+KPartiteKClique::KPartiteKClique(const bool* const* incidences, const int n_vertices, const int* first_per_part, const int k, const int prec_depth)
+        : KPartiteKClique_base::KPartiteKClique_base(incidences, n_vertices, first_per_part, k){
+    this->prec_depth = prec_depth;
+
+    recursive_graphs = new KPartiteGraph[k];
+    for (int i=0; i<k; i++){
+        KPartiteGraph tmp(this, i==0);
+        swap(tmp, recursive_graphs[i]);
+    }
+
+    // Assign vertices to the first graph.
+    recursive_graphs->vertices.assign(all_vertices, all_vertices + n_vertices);
+
+    if (recursive_graphs->set_weights())
+        recursive_graphs->set_weights();
+
+    sort(recursive_graphs->vertices.begin(), recursive_graphs->vertices.end());
+}
+
+KPartiteKClique::~KPartiteKClique(){
+    delete[] recursive_graphs;
+}
+
+KPartiteKClique_base::KPartiteGraph* KPartiteKClique::current_graph(){
+    return (KPartiteKClique_base::KPartiteGraph*) &(recursive_graphs[current_depth]);
+}
+
+KPartiteKClique_base::KPartiteGraph* KPartiteKClique::next_graph(){
+    return (KPartiteKClique_base::KPartiteGraph*) &(recursive_graphs[current_depth + 1]);
+}
+
 // FindClique
 
 FindClique::FindClique(const bool* const* incidences, const int n_vertices, const int* first_per_part, const int k)
@@ -392,80 +389,17 @@ FindClique::FindClique(const bool* const* incidences, const int n_vertices, cons
     }
 
     // Take care of trivial parts.
-    n_trivial_parts = 0;
     for (int i=0; i<k; i++){
-        if (parts[i+1] - parts[i] == 1){
-            intersection(*(recursive_graphs->active_vertices), all_vertices[parts[i]], *(recursive_graphs->active_vertices));
-            n_trivial_parts++;
-            _k_clique[i] = parts[i];
+        if (parts[i+1] - parts[i] == 1)
+            current_graph()->part_sizes[i] = 2;
 
-            // The code assumes that a vertex is selected only, if it is still available.
-            // Above we just selected the loneley vertex of the part unconditionally.
-            // But it might not even be available anymore
-            // (if some previously selected lonely vertex isn't coneccted to it).
-            if (!recursive_graphs->active_vertices->has(parts[i])){
-                current_graph_upcast()->selected_part = -2;
-                n_trivial_parts = k;
-                return;
-            }
-        }
     }
 
-    if (!recursive_graphs->set_weights()){
-        n_trivial_parts = k;
-        current_graph_upcast()->selected_part = -2;
-    }
+    recursive_graphs->set_weights();
 }
 
 FindClique::~FindClique(){
     delete[] recursive_graphs;
-}
-
-bool FindClique::next(){
-    // The stupid case, where all parts have size 1.
-    if (n_trivial_parts == k){
-        if (current_graph_upcast()->selected_part == -2)
-            return false;
-        current_graph_upcast()->selected_part = -2;
-        return true;
-    }
-
-    REGISTER_SIGNALS
-
-    // Set the next clique.
-    // Return whether there is a next clique.
-    while (true){
-        if (current_depth < k - 1 - n_trivial_parts){
-
-            // Note that the interrupt can also be abused to pause.
-            CHECK_FOR_INTERRUPT
-
-            if(!current_graph()->select(next_graph())){
-                if (!backtrack()){
-                    // Out of options.
-                    RESTORE_SIGNALS
-                    return false;
-                }
-            }
-
-        } else {
-            if (current_depth == k - 1 - n_trivial_parts){
-                // We are done. There is only one part left, for which we
-                // have choices.
-                // Each choice corresponds to a valid k-clique.
-                if (!current_graph()->select()){
-                    if (!backtrack()){
-                        // Out of options.
-                        RESTORE_SIGNALS
-                        return false;
-                    }
-                } else {
-                    RESTORE_SIGNALS
-                    return true;
-                }
-            }
-        }
-    }
 }
 
 // Vertex_template
@@ -722,6 +656,7 @@ bool KPartiteKClique::KPartiteGraph::select(){
 
     It is assumed that there is no next graph.
     */
+    assert(problem->current_depth == problem->k -1);
     Vertex* v = last_vertex();
     if (!v)
         return false;
@@ -818,6 +753,7 @@ bool FindClique::KPartiteGraph::select(){
     It is assumed that there is no next graph.
     */
     assert(selected_part != -1); // Should not be called, if we found a clique already.
+    assert(problem->current_depth == problem->k -1);
     if (!part_sizes[selected_part])
         return false;
 

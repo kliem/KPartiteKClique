@@ -37,7 +37,7 @@ class KPartiteKClique_base {
         KPartiteKClique_base(const bool* const* incidences, const int n_vertices, const int* first_per_part, const int k);
         virtual ~KPartiteKClique_base();
         const int* k_clique(){ return _k_clique; }
-        virtual bool next();
+        bool next();
 
         KPartiteKClique_base(const KPartiteKClique_base&) = delete;
         KPartiteKClique_base& operator=(const KPartiteKClique_base&) = delete;
@@ -63,7 +63,6 @@ class KPartiteKClique : public KPartiteKClique_base {
     public:
         KPartiteKClique(const bool* const* incidences, const int n_vertices, const int* first_per_part, const int k, const int prec_depth=5);
         ~KPartiteKClique();
-        bool next();
 
         KPartiteKClique(const KPartiteKClique&) = delete;
         KPartiteKClique& operator=(const KPartiteKClique&) = delete;
@@ -85,12 +84,10 @@ class FindClique : public KPartiteKClique_base {
     public:
         FindClique(const bool* const* incidences, const int n_vertices, const int* first_per_part, const int k);
         ~FindClique();
-        bool next();
 
         FindClique(const FindClique&) = delete;
         FindClique& operator=(const FindClique&) = delete;
     private:
-        int n_trivial_parts;
         KPartiteGraph* recursive_graphs;
         KPartiteKClique_base::KPartiteGraph* current_graph();
         KPartiteGraph* current_graph_upcast(){ return (KPartiteGraph*) current_graph();}
