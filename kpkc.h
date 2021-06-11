@@ -131,7 +131,6 @@ class KPartiteKClique_base::KPartiteGraph {
         KPartiteGraph(KPartiteKClique_base* problem, bool fill);
         ~KPartiteGraph();
         virtual bool is_valid();
-        virtual bool set_weights();
         virtual bool select(KPartiteGraph* next);
         virtual bool select();
 
@@ -216,7 +215,7 @@ class FindClique::KPartiteGraph : KPartiteKClique_base::KPartiteGraph {
         bool is_valid();
         bool select(KPartiteKClique_base::KPartiteGraph* next2);
         bool select();
-        bool set_weights();
+        bool set_part_sizes();
         inline int count(int start, int stop){
             return active_vertices->count(start, stop);
         }

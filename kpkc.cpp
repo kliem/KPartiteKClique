@@ -359,6 +359,7 @@ KPartiteKClique::KPartiteKClique(const bool* const* incidences, const int n_vert
     // Assign vertices to the first graph.
     recursive_graphs->vertices.assign(all_vertices, all_vertices + n_vertices);
 
+    // Set weights twice, if there is new knowledge already.
     if (recursive_graphs->set_weights())
         recursive_graphs->set_weights();
 
@@ -389,13 +390,16 @@ FindClique::FindClique(const bool* const* incidences, const int n_vertices, cons
     }
 
     // Take care of trivial parts.
+    // ``set_part_sizes`` assumes that parts of size 1 were selected
+    // already, which would not be the case, if the part is 1 to start
+    // with.
     for (int i=0; i<k; i++){
         if (parts[i+1] - parts[i] == 1)
             current_graph()->part_sizes[i] = 2;
 
     }
 
-    recursive_graphs->set_weights();
+    recursive_graphs->set_part_sizes();
 }
 
 FindClique::~FindClique(){
@@ -449,10 +453,6 @@ KPartiteKClique_base::KPartiteGraph::~KPartiteGraph(){
 }
 
 bool KPartiteKClique_base::KPartiteGraph::is_valid(){
-    throw runtime_error("a derived class must implement this");
-}
-
-bool KPartiteKClique_base::KPartiteGraph::set_weights(){
     throw runtime_error("a derived class must implement this");
 }
 
@@ -681,7 +681,12 @@ FindClique::KPartiteGraph::KPartiteGraph(FindClique* problem, bool fill) : KPart
     this->problem = problem;
 }
 
-inline bool FindClique::KPartiteGraph::set_weights(){
+inline bool FindClique::KPartiteGraph::set_part_sizes(){
+    /*
+    Set the sizes of the parts.
+
+    Return false, if any part has size 0, otherwise true
+    */
     int i;
     int min_so_far = problem->n_vertices;
     selected_part = -1;
@@ -742,7 +747,7 @@ bool FindClique::KPartiteGraph::select(KPartiteKClique_base::KPartiteGraph* next
     // accordingly.
     problem->current_depth += 1;
 
-    return next->set_weights();
+    return next->set_part_sizes();
 }
 
 bool FindClique::KPartiteGraph::select(){
