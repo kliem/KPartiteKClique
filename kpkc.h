@@ -77,7 +77,6 @@ class KPartiteKClique : public KPartiteKClique_base {
 };
 
 class FindClique : public KPartiteKClique_base {
-    friend void swap(KPartiteGraph& a, KPartiteGraph& b);
     class KPartiteGraph;
 
     public:
@@ -95,6 +94,7 @@ class FindClique : public KPartiteKClique_base {
 
 class KPartiteKClique_base::Vertex_template {
     // Takes care of the memory allocation for vertices.
+
     friend KPartiteKClique;
     friend KPartiteKClique::Vertex;
     friend FindClique;
@@ -124,14 +124,15 @@ class KPartiteKClique_base::KPartiteGraph {
         Bitset* active_vertices;
         int* part_sizes;
         KPartiteGraph();
-        KPartiteGraph(const KPartiteGraph&) = delete;
-        KPartiteGraph& operator=(const KPartiteGraph&) = delete;
         KPartiteGraph(KPartiteKClique_base* problem, bool fill);
         virtual ~KPartiteGraph();
+
         virtual bool permits_another_choice();
         virtual bool select(KPartiteGraph* next);
         virtual bool select();
 
+        KPartiteGraph(const KPartiteGraph&) = delete;
+        KPartiteGraph& operator=(const KPartiteGraph&) = delete;
     protected:
         inline const int* get_parts() { assert(problem); return problem->parts; }
         inline const int get_k() { assert(problem); return problem->k; }
@@ -140,8 +141,9 @@ class KPartiteKClique_base::KPartiteGraph {
         KPartiteKClique_base* problem;
 };
 
-// Vertex is a shallow copy of Vertex_template.
 class KPartiteKClique::Vertex {
+    // Vertex is a shallow copy of Vertex_template.
+
     inline friend bool operator<(const Vertex& l, const Vertex& r){
         // The lower the weight, the higher the obstruction when
         // selecting this vertex.
@@ -183,20 +185,23 @@ class KPartiteKClique::KPartiteGraph : KPartiteKClique_base::KPartiteGraph {
         vector<Vertex> vertices;
         KPartiteGraph();
         KPartiteGraph(KPartiteKClique* problem, bool fill);
-        KPartiteGraph(const KPartiteGraph&) = delete;
-        KPartiteGraph& operator=(const KPartiteGraph&) = delete;
         ~KPartiteGraph() {}
+
+        bool permits_another_choice();
+        bool select(KPartiteKClique_base::KPartiteGraph* next2);
+        bool select();
+
         Vertex* last_vertex();
         void pop_last_vertex();
-        bool permits_another_choice();
         inline bool set_weights(){
             bool new_knowledge = false;
             for(Vertex& v: vertices)
                 new_knowledge |= v.set_weight();
             return new_knowledge;
         }
-        bool select(KPartiteKClique_base::KPartiteGraph* next2);
-        bool select();
+
+        KPartiteGraph(const KPartiteGraph&) = delete;
+        KPartiteGraph& operator=(const KPartiteGraph&) = delete;
     protected:
         KPartiteKClique* problem;
 };
@@ -207,13 +212,13 @@ class FindClique::KPartiteGraph : KPartiteKClique_base::KPartiteGraph {
         using KPartiteKClique_base::KPartiteGraph::active_vertices;
         int selected_part;
         KPartiteGraph() : KPartiteKClique_base::KPartiteGraph() {}
-        KPartiteGraph(const KPartiteGraph&) = delete;
-        KPartiteGraph& operator=(const KPartiteGraph&) = delete;
         KPartiteGraph(FindClique* problem, bool fill);
         ~KPartiteGraph() {}
+
         bool permits_another_choice();
         bool select(KPartiteKClique_base::KPartiteGraph* next2);
         bool select();
+
         bool set_part_sizes();
         inline int count(int start, int stop){
             return active_vertices->count(start, stop);
@@ -229,6 +234,9 @@ class FindClique::KPartiteGraph : KPartiteKClique_base::KPartiteGraph {
             active_vertices->unset(vertex);
             part_sizes[part] -= 1;
         }
+
+        KPartiteGraph(const KPartiteGraph&) = delete;
+        KPartiteGraph& operator=(const KPartiteGraph&) = delete;
     protected:
         FindClique* problem;
 };

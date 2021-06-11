@@ -611,7 +611,7 @@ bool KPartiteKClique::KPartiteGraph::select(KPartiteKClique_base::KPartiteGraph*
     pop_last_vertex();
     next->vertices.assign(vertices.begin(), vertices.end());
 
-    // Note that above, the part size of ``_k_clique[v.part]``:
+    // Note the part size of ``_k_clique[v.part]``:
     // current is one smaller than next.
     // This is intentional, as in next the vertex was selected, not
     // removed.
@@ -728,15 +728,12 @@ bool FindClique::KPartiteGraph::select(KPartiteKClique_base::KPartiteGraph* next
     // Select v.
     int v = first(selected_part);
     if (v == -1) return false;
-    intersection(*next->active_vertices, problem->all_vertices[v], *active_vertices);
-
-    // v may no longer be selected.
-    // In current not, because we have removed it.
-    // In next not, because it is selected already
-
-    pop_vertex(selected_part, v);
 
     problem->_k_clique[selected_part] = v;
+    intersection(*next->active_vertices, problem->all_vertices[v], *active_vertices);
+
+    // v may no longer be selected on the next call.
+    pop_vertex(selected_part, v);
 
     // Raise the current
     // depth, such that the
@@ -763,11 +760,10 @@ bool FindClique::KPartiteGraph::select(){
     int v = first(selected_part);
     if (v == -1) return false;
 
-    // v may no longer be selected.
-    // In current not, because we have removed it.
-    // In next not, because it is selected already
-    pop_vertex(selected_part, v);
     problem->_k_clique[selected_part] = v;
+
+    // v may no longer be selected on the next call.
+    pop_vertex(selected_part, v);
 
     return true;
 }
@@ -781,6 +777,6 @@ KPartiteKClique_base::KPartiteGraph* FindClique::next_graph(){
 }
 
 inline bool FindClique::KPartiteGraph::permits_another_choice(){
-    return (selected_part >= 0);
+    return ((selected_part >= 0) && (part_sizes[selected_part]));
 }
 
