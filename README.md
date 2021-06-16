@@ -43,3 +43,6 @@ The algorithms are described [here](ALGORITHM.md)
 # Python wrapper
 
 A python wrapper is avaible [here](https://github.com/kliem/PyKPartiteKClique).
+
+The python wrapper also includes benchmark including the random graphs
+tested in the above two `FindClique`-papers.
