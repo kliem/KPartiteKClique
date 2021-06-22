@@ -115,10 +115,6 @@ Bitset::Bitset(const bool* set_bits, int n_vertices){
     }
 }
 
-Bitset::~Bitset(){
-    delete[] data;
-}
-
 inline void Bitset::intersection_assign(Bitset& l, Bitset& r){
     // Assumes all of same length.
     for (int i=0; i<limbs; i++)
@@ -246,7 +242,7 @@ bool Bitset::has(int index){
 
 void Bitset::allocate(int n_vertices){
     limbs = ((n_vertices-1)/64+ 1);
-    data = new uint64_t[limbs];
+    data = vector<uint64_t>(limbs);
 }
 
 // KPartiteKClique_base
@@ -256,8 +252,8 @@ KPartiteKClique_base::KPartiteKClique_base(const bool* const* incidences, const 
 
     current_depth = 0;
 
-    _k_clique = new int[k];
-    parts = new int[k+1];
+    _k_clique = vector<int>(k);
+    parts = vector<int>(k+1);
     for (int i=0; i<k; i++){
         parts[i] = first_per_part[i];
     }
@@ -271,20 +267,13 @@ KPartiteKClique_base::KPartiteKClique_base(const bool* const* incidences, const 
     this->n_vertices = n_vertices;
     this->k = k;
 
-    all_vertices = new Vertex_template[n_vertices];
+    all_vertices = vector<Vertex_template>();
     int current_part = 0;
     for (int i=0; i<n_vertices; i++){
         while ((current_part < k-1) && (i >= parts[current_part + 1]))
             current_part += 1;
-        Vertex_template tmp(this, incidences[i], n_vertices, current_part, i);
-        swap(tmp, all_vertices[i]);
+        all_vertices.push_back(Vertex_template(this, incidences[i], n_vertices, current_part, i));
     }
-}
-
-KPartiteKClique_base::~KPartiteKClique_base(){
-    delete[] _k_clique;
-    delete[] parts;
-    delete[] all_vertices;
 }
 
 KPartiteKClique_base::KPartiteGraph* KPartiteKClique_base::current_graph(){
@@ -350,24 +339,19 @@ KPartiteKClique::KPartiteKClique(const bool* const* incidences, const int n_vert
         : KPartiteKClique_base::KPartiteKClique_base(incidences, n_vertices, first_per_part, k){
     this->prec_depth = prec_depth;
 
-    recursive_graphs = new KPartiteGraph[k];
+    recursive_graphs = vector<KPartiteGraph>();
     for (int i=0; i<k; i++){
-        KPartiteGraph tmp(this, i==0);
-        swap(tmp, recursive_graphs[i]);
+        recursive_graphs.push_back(KPartiteGraph(this, i==0));
     }
 
     // Assign vertices to the first graph.
-    recursive_graphs->vertices.assign(all_vertices, all_vertices + n_vertices);
+    recursive_graphs.front().vertices.assign(all_vertices.begin(), all_vertices.end());
 
     // Set weights twice, if there is new knowledge already.
-    if (recursive_graphs->set_weights())
-        recursive_graphs->set_weights();
+    if (recursive_graphs.front().set_weights())
+        recursive_graphs.front().set_weights();
 
-    sort(recursive_graphs->vertices.begin(), recursive_graphs->vertices.end());
-}
-
-KPartiteKClique::~KPartiteKClique(){
-    delete[] recursive_graphs;
+    sort(recursive_graphs.front().vertices.begin(), recursive_graphs.front().vertices.end());
 }
 
 KPartiteKClique_base::KPartiteGraph* KPartiteKClique::current_graph(){
@@ -383,10 +367,9 @@ KPartiteKClique_base::KPartiteGraph* KPartiteKClique::next_graph(){
 FindClique::FindClique(const bool* const* incidences, const int n_vertices, const int* first_per_part, const int k)
         : KPartiteKClique_base::KPartiteKClique_base(incidences, n_vertices, first_per_part, k){
 
-    recursive_graphs = new KPartiteGraph[k];
+    recursive_graphs = vector<KPartiteGraph>();
     for (int i=0; i<k; i++){
-        KPartiteGraph tmp(this, i==0);
-        swap(tmp, recursive_graphs[i]);
+        recursive_graphs.push_back(KPartiteGraph(this, i==0));
     }
 
     // Take care of trivial parts.
@@ -399,17 +382,13 @@ FindClique::FindClique(const bool* const* incidences, const int n_vertices, cons
 
     }
 
-    recursive_graphs->set_part_sizes();
-}
-
-FindClique::~FindClique(){
-    delete[] recursive_graphs;
+    recursive_graphs.front().set_part_sizes();
 }
 
 // Vertex_template
 
 KPartiteKClique_base::Vertex_template::Vertex_template(KPartiteKClique_base* problem, const bool* incidences, int n_vertices, int part, int index){
-    bitset = new Bitset(incidences, n_vertices);
+    bitset = Bitset(incidences, n_vertices);
     this->part = part;
     this->index = index;
     this->problem = problem;
@@ -417,39 +396,18 @@ KPartiteKClique_base::Vertex_template::Vertex_template(KPartiteKClique_base* pro
     // Set each vertex adjacent to itself.
     // This is important, so that after selecting a vertex
     // the corresponding part will have one ``active_vertex``.
-    bitset->set(index);
-}
-
-inline KPartiteKClique_base::Vertex_template::~Vertex_template(){
-    delete bitset;
-}
-
-void KPartiteKClique_base::swap(KPartiteKClique_base::Vertex_template& a, KPartiteKClique_base::Vertex_template& b){
-    std::swap(a.bitset, b.bitset);
-    std::swap(a.part, b.part);
-    std::swap(a.index, b.index);
-    std::swap(a.problem, b.problem);
+    bitset.set(index);
 }
 
 // KPartiteGraph in KPartiteKClique_base
 
 KPartiteKClique_base::KPartiteGraph::KPartiteGraph(KPartiteKClique_base* problem, bool fill){
-    active_vertices = new Bitset(problem->n_vertices, fill);
-    part_sizes = new int[problem->k+1];
+    active_vertices = Bitset(problem->n_vertices, fill);
+    part_sizes = vector<int>(problem->k+1);
     for (int i=0; i < problem->k; i++){
         part_sizes[i] = problem->parts[i+1] - problem->parts[i];
     }
     this->problem = problem;
-}
-
-KPartiteKClique_base::KPartiteGraph::KPartiteGraph(){
-    active_vertices = NULL;
-    part_sizes = NULL;
-}
-
-KPartiteKClique_base::KPartiteGraph::~KPartiteGraph(){
-    delete active_vertices;
-    delete[] part_sizes;
 }
 
 bool KPartiteKClique_base::KPartiteGraph::permits_another_choice(){
@@ -466,8 +424,8 @@ bool KPartiteKClique_base::KPartiteGraph::select(){
 
 // Vertex
 
-inline KPartiteKClique::Vertex::Vertex(const KPartiteKClique_base::Vertex_template& obj){
-    bitset = obj.bitset;
+inline KPartiteKClique::Vertex::Vertex(KPartiteKClique_base::Vertex_template& obj){
+    bitset = &(obj.bitset);
     part = obj.part;
     weight = -1;
     index = obj.index;
@@ -519,24 +477,6 @@ inline bool KPartiteKClique::Vertex::set_weight(){
 
 // KPartiteGraph in KPartiteKClique
 
-void KPartiteKClique_base::swap(KPartiteKClique_base::KPartiteGraph& a, KPartiteKClique_base::KPartiteGraph& b){
-    std::swap(a.active_vertices, b.active_vertices);
-    std::swap(a.part_sizes, b.part_sizes);
-    std::swap(a.problem, b.problem);
-}
-
-void KPartiteKClique::swap(KPartiteKClique::KPartiteGraph& a, KPartiteKClique::KPartiteGraph& b){
-    KPartiteKClique_base::swap(*((KPartiteKClique_base::KPartiteGraph *) &a), *((KPartiteKClique_base::KPartiteGraph *) &b));
-    std::swap(a.problem, b.problem);
-    std::swap(a.vertices, b.vertices);
-}
-
-void FindClique::swap(FindClique::KPartiteGraph& a, FindClique::KPartiteGraph& b){
-    KPartiteKClique_base::swap(*((KPartiteKClique_base::KPartiteGraph *) &a), *((KPartiteKClique_base::KPartiteGraph *) &b));
-    std::swap(a.problem, b.problem);
-    std::swap(a.selected_part, b.selected_part);
-}
-
 KPartiteKClique::KPartiteGraph::KPartiteGraph() : KPartiteKClique_base::KPartiteGraph::KPartiteGraph(){
     vertices = vector<Vertex>();
 }
@@ -549,7 +489,7 @@ KPartiteKClique::KPartiteGraph::KPartiteGraph(KPartiteKClique* problem, bool fil
 inline void KPartiteKClique::KPartiteGraph::pop_last_vertex(){
     Vertex& v = vertices.back();
     part_sizes[v.part] -= 1;
-    active_vertices->unset(v.index);
+    active_vertices.unset(v.index);
     vertices.pop_back();
 }
 
@@ -601,7 +541,7 @@ bool KPartiteKClique::KPartiteGraph::select(KPartiteKClique_base::KPartiteGraph*
 
     // Select v.
     problem->_k_clique[v->part] = v->index;
-    intersection(*next->active_vertices, *v, *active_vertices);
+    intersection(next->active_vertices, *v, active_vertices);
 
     int part = v->part;
 
@@ -730,7 +670,7 @@ bool FindClique::KPartiteGraph::select(KPartiteKClique_base::KPartiteGraph* next
     if (v == -1) return false;
 
     problem->_k_clique[selected_part] = v;
-    intersection(*next->active_vertices, problem->all_vertices[v], *active_vertices);
+    intersection(next->active_vertices, problem->all_vertices[v], active_vertices);
 
     // v may no longer be selected on the next call.
     pop_vertex(selected_part, v);
