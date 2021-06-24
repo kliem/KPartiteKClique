@@ -4,7 +4,6 @@
 #include <cstdint>
 #include <vector>
 #include <cassert>
-using namespace std;
 
 class Bitset;
 
@@ -25,7 +24,7 @@ class Bitset {
         int first(int start);
         void intersection_assign(Bitset& l, Bitset& r);
     protected:
-        vector<uint64_t> data;
+        std::vector<uint64_t> data;
         int limbs;
         void allocate(int n_vertices);
         inline uint64_t& operator[](int i){ return data[i]; }
@@ -43,12 +42,12 @@ class KPartiteKClique_base {
         KPartiteKClique_base(const KPartiteKClique_base&) = delete;
         KPartiteKClique_base& operator=(const KPartiteKClique_base&) = delete;
     protected:
-        vector<int> _k_clique;
-        vector<int> parts;
+        std::vector<int> _k_clique;
+        std::vector<int> parts;
         int k;
         int current_depth;
         int n_vertices;
-        vector<Vertex_template> all_vertices;
+        std::vector<Vertex_template> all_vertices;
         virtual KPartiteGraph* current_graph();
         virtual KPartiteGraph* next_graph();
         bool backtrack();
@@ -68,7 +67,7 @@ class KPartiteKClique : public KPartiteKClique_base {
         using KPartiteKClique_base::_k_clique;
         using KPartiteKClique_base::all_vertices;
         int prec_depth;
-        vector<KPartiteGraph> recursive_graphs;
+        std::vector<KPartiteGraph> recursive_graphs;
         KPartiteKClique_base::KPartiteGraph* current_graph();
         KPartiteKClique_base::KPartiteGraph* next_graph();
 };
@@ -82,7 +81,7 @@ class FindClique : public KPartiteKClique_base {
         FindClique(const FindClique&) = delete;
         FindClique& operator=(const FindClique&) = delete;
     private:
-        vector<KPartiteGraph> recursive_graphs;
+        std::vector<KPartiteGraph> recursive_graphs;
         KPartiteKClique_base::KPartiteGraph* current_graph();
         KPartiteKClique_base::KPartiteGraph* next_graph();
 };
@@ -116,7 +115,7 @@ class KPartiteKClique_base::Vertex_template {
 class KPartiteKClique_base::KPartiteGraph {
     public:
         Bitset active_vertices;
-        vector<int> part_sizes;
+        std::vector<int> part_sizes;
         KPartiteGraph() {}
         KPartiteGraph(KPartiteKClique_base* problem, bool fill);
 
@@ -176,7 +175,7 @@ class KPartiteKClique::Vertex {
 
 class KPartiteKClique::KPartiteGraph : KPartiteKClique_base::KPartiteGraph {
     public:
-        vector<Vertex> vertices;
+        std::vector<Vertex> vertices;
         KPartiteGraph();
         KPartiteGraph(KPartiteKClique* problem, bool fill);
 

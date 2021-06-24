@@ -10,6 +10,8 @@
 #include <stdlib.h>
 #include <stdexcept>
 
+using namespace std;
+
 // Handle keyboard
 // interrupts
 
