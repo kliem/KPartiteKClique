@@ -9,7 +9,7 @@ class Bitset;
 
 class Bitset {
     public:
-        Bitset(){ limbs = 0; }
+        Bitset() = default;
         Bitset(int n_vertices, bool fill=false);
         Bitset(const bool* set_bits, int n_vertices);
         Bitset(const Bitset&) = delete;
