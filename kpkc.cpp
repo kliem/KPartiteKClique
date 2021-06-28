@@ -1,8 +1,8 @@
+#include "kpkc.h"
+
 #if __POPCNT__ || __BMI__
     #include <immintrin.h>
 #endif
-
-#include "kpkc.h"
 
 #include <algorithm>
 #include <csignal>
@@ -10,9 +10,11 @@
 #include <stdlib.h>
 #include <stdexcept>
 
+using namespace std;
+
 // Handle keyboard
 // interrupts
-
+namespace {
 volatile sig_atomic_t kpkc_interrupted = 0;
 
 void interrupt_signal_handler(int signal) {
@@ -43,7 +45,7 @@ struct sigaction sigIntHandler;
 
 // Bitset helpers.
 
-inline int popcount(uint64_t i){
+int popcount(uint64_t i){
 #if (__POPCNT__) && (INTPTR_MAX == INT64_MAX)
     return _mm_popcnt_u64(i);
 #else
@@ -53,11 +55,11 @@ inline int popcount(uint64_t i){
 #endif
 }
 
-inline uint64_t lower_n_bits(int n){
+uint64_t lower_n_bits(int n){
     return ((uint64_t) -1) >> (64 - n);
 }
 
-inline int first_in_limb(uint64_t i){
+int first_in_limb(uint64_t i){
     // Return the position of the first bit.
     //
     // Assumes that ``i`` is nonzero.
@@ -75,12 +77,13 @@ inline int first_in_limb(uint64_t i){
 #endif
 }
 
-inline uint64_t one_set_bit(int n){
+uint64_t one_set_bit(int n){
     return ((uint64_t) 1) << (n % 64);
 }
-
+}
 // Bitsets
-
+namespace kpkc
+{
 Bitset::Bitset(int n_vertices, bool fill){
     /*
     Initalize bitset.
@@ -115,13 +118,13 @@ Bitset::Bitset(const bool* set_bits, int n_vertices){
     }
 }
 
-inline void Bitset::intersection_assign(Bitset& l, Bitset& r){
+void Bitset::intersection_assign(Bitset& l, Bitset& r){
     // Assumes all of same length.
     for (int i=0; i<limbs; i++)
         data[i] = l[i] & r[i];
 }
 
-inline int Bitset::intersection_count(Bitset& r, int start, int stop){
+int Bitset::intersection_count(Bitset& r, int start, int stop){
     /*
     Count the number of set bits in ``this & r``
     in ``range(start, stop)``.
@@ -160,7 +163,7 @@ inline int Bitset::intersection_count(Bitset& r, int start, int stop){
     return counter;
 }
 
-inline int Bitset::count(int start, int stop){
+int Bitset::count(int start, int stop){
     /*
     Count the number of set bits in ``this``
     in ``range(start, stop)``.
@@ -199,7 +202,7 @@ inline int Bitset::count(int start, int stop){
     return counter;
 }
 
-inline int Bitset::first(int start){
+int Bitset::first(int start){
     /*
     Return the first bit in ``this``
     in ``range(start, stop)``.
@@ -242,7 +245,7 @@ bool Bitset::has(int index){
 
 void Bitset::allocate(int n_vertices){
     limbs = ((n_vertices-1)/64+ 1);
-    data = vector<uint64_t>(limbs);
+    data.resize(limbs);
 }
 
 // KPartiteKClique_base
@@ -267,21 +270,14 @@ KPartiteKClique_base::KPartiteKClique_base(const bool* const* incidences, const 
     this->n_vertices = n_vertices;
     this->k = k;
 
-    all_vertices = vector<Vertex_template>();
+    // use clear to preserve capacity
+    all_vertices.clear();
     int current_part = 0;
     for (int i=0; i<n_vertices; i++){
         while ((current_part < k-1) && (i >= parts[current_part + 1]))
             current_part += 1;
         all_vertices.push_back(Vertex_template(this, incidences[i], n_vertices, current_part, i));
     }
-}
-
-KPartiteKClique_base::KPartiteGraph* KPartiteKClique_base::current_graph(){
-    throw runtime_error("a derived class must implement this");
-}
-
-KPartiteKClique_base::KPartiteGraph* KPartiteKClique_base::next_graph(){
-    throw runtime_error("a derived class must implement this");
 }
 
 bool KPartiteKClique_base::backtrack(){
@@ -410,21 +406,9 @@ KPartiteKClique_base::KPartiteGraph::KPartiteGraph(KPartiteKClique_base* problem
     this->problem = problem;
 }
 
-bool KPartiteKClique_base::KPartiteGraph::permits_another_choice(){
-    throw runtime_error("a derived class must implement this");
-}
-
-bool KPartiteKClique_base::KPartiteGraph::select(KPartiteKClique_base::KPartiteGraph* next){
-    throw runtime_error("a derived class must implement this");
-}
-
-bool KPartiteKClique_base::KPartiteGraph::select(){
-    throw runtime_error("a derived class must implement this");
-}
-
 // Vertex
 
-inline KPartiteKClique::Vertex::Vertex(KPartiteKClique_base::Vertex_template& obj){
+KPartiteKClique::Vertex::Vertex(KPartiteKClique_base::Vertex_template& obj){
     bitset = &(obj.bitset);
     part = obj.part;
     weight = -1;
@@ -435,7 +419,7 @@ inline KPartiteKClique::Vertex::Vertex(KPartiteKClique_base::Vertex_template& ob
         throw invalid_argument("the graph is not k-partite");
 }
 
-inline KPartiteKClique::Vertex::Vertex(const Vertex& obj){
+KPartiteKClique::Vertex::Vertex(const Vertex& obj){
     bitset = obj.bitset;
     weight = obj.weight;
     part = obj.part;
@@ -443,7 +427,7 @@ inline KPartiteKClique::Vertex::Vertex(const Vertex& obj){
     problem = obj.problem;
 }
 
-inline bool KPartiteKClique::Vertex::set_weight(){
+bool KPartiteKClique::Vertex::set_weight(){
     // The weight is the number of vertices that are still available when
     // selecting this vertex.
     // However, when selecting the vertex no longer allows a k-clique,
@@ -486,14 +470,14 @@ KPartiteKClique::KPartiteGraph::KPartiteGraph(KPartiteKClique* problem, bool fil
     this->problem = problem;
 }
 
-inline void KPartiteKClique::KPartiteGraph::pop_last_vertex(){
+void KPartiteKClique::KPartiteGraph::pop_last_vertex(){
     Vertex& v = vertices.back();
     part_sizes[v.part] -= 1;
     active_vertices.unset(v.index);
     vertices.pop_back();
 }
 
-inline KPartiteKClique::Vertex* KPartiteKClique::KPartiteGraph::last_vertex(){
+KPartiteKClique::Vertex* KPartiteKClique::KPartiteGraph::last_vertex(){
     /*
     Get the last vertex, which is (possibly) a valid choice.
 
@@ -515,7 +499,7 @@ inline KPartiteKClique::Vertex* KPartiteKClique::KPartiteGraph::last_vertex(){
     return &v;
 }
 
-inline bool KPartiteKClique::KPartiteGraph::permits_another_choice(){
+bool KPartiteKClique::KPartiteGraph::permits_another_choice(){
     for (int i=0; i<get_k(); i++){
         if (part_sizes[i] == 0)
             return false;
@@ -618,7 +602,7 @@ FindClique::KPartiteGraph::KPartiteGraph(FindClique* problem, bool fill) : KPart
     this->problem = problem;
 }
 
-inline bool FindClique::KPartiteGraph::set_part_sizes(){
+bool FindClique::KPartiteGraph::set_part_sizes(){
     /*
     Set the sizes of the parts.
 
@@ -716,7 +700,7 @@ KPartiteKClique_base::KPartiteGraph* FindClique::next_graph(){
     return (KPartiteKClique_base::KPartiteGraph*) &(recursive_graphs[current_depth + 1]);
 }
 
-inline bool FindClique::KPartiteGraph::permits_another_choice(){
+bool FindClique::KPartiteGraph::permits_another_choice(){
     return ((selected_part >= 0) && (part_sizes[selected_part]));
 }
-
+}
