@@ -39,6 +39,7 @@ class KPartiteKClique_base {
         class KPartiteGraph;
     public:
         KPartiteKClique_base(const bool* const* incidences, const int n_vertices, const int* first_per_part, const int k);
+        virtual ~KPartiteKClique_base() = default;
         const int* k_clique(){ return _k_clique.data(); }
         bool next();
 
@@ -63,7 +64,6 @@ class KPartiteKClique : public KPartiteKClique_base {
 
     public:
         KPartiteKClique(const bool* const* incidences, const int n_vertices, const int* first_per_part, const int k, const int prec_depth=5);
-
         KPartiteKClique(const KPartiteKClique&) = delete;
         KPartiteKClique& operator=(const KPartiteKClique&) = delete;
     private:
