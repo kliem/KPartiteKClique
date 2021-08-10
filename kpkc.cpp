@@ -8,7 +8,6 @@
 #include <csignal>
 #include <iostream>
 #include <stdlib.h>
-#include <stdexcept>
 
 using namespace std;
 
@@ -77,13 +76,12 @@ int first_in_limb(uint64_t i){
 #endif
 }
 
-uint64_t one_set_bit(int n){
-    return ((uint64_t) 1) << (n % 64);
 }
-}
-// Bitsets
 namespace kpkc
 {
+
+// Bitsets
+
 Bitset::Bitset(int n_vertices, bool fill){
     /*
     Initalize bitset.
@@ -235,14 +233,6 @@ void Bitset::set(int index){
     data[index/64] |= one_set_bit(index % 64);
 }
 
-void Bitset::unset(int index){
-    data[index/64] &= ~one_set_bit(index % 64);
-}
-
-bool Bitset::has(int index){
-    return data[index/64] & one_set_bit(index % 64);
-}
-
 void Bitset::allocate(int n_vertices){
     limbs = ((n_vertices-1)/64+ 1);
     data.resize(limbs);
@@ -278,20 +268,6 @@ KPartiteKClique_base::KPartiteKClique_base(const bool* const* incidences, const 
             current_part += 1;
         all_vertices.push_back(Vertex_template(this, incidences[i], n_vertices, current_part, i));
     }
-}
-
-bool KPartiteKClique_base::backtrack(){
-    /*
-    Go the the last valid graph.
-
-    If none exists, return false.
-    */
-    while (current_depth >= 1){
-        current_depth -= 1;
-        if (current_graph()->permits_another_choice())
-            return true;
-    }
-    return false;
 }
 
 bool KPartiteKClique_base::next(){
@@ -406,59 +382,6 @@ KPartiteKClique_base::KPartiteGraph::KPartiteGraph(KPartiteKClique_base* problem
     this->problem = problem;
 }
 
-// Vertex
-
-KPartiteKClique::Vertex::Vertex(KPartiteKClique_base::Vertex_template& obj){
-    bitset = &(obj.bitset);
-    part = obj.part;
-    weight = -1;
-    index = obj.index;
-    problem = (KPartiteKClique*) obj.problem;
-
-    if (1 != bitset->count(get_parts()[part], get_parts()[part + 1]))
-        throw invalid_argument("the graph is not k-partite");
-}
-
-KPartiteKClique::Vertex::Vertex(const Vertex& obj){
-    bitset = obj.bitset;
-    weight = obj.weight;
-    part = obj.part;
-    index = obj.index;
-    problem = obj.problem;
-}
-
-bool KPartiteKClique::Vertex::set_weight(){
-    // The weight is the number of vertices that are still available when
-    // selecting this vertex.
-    // However, when selecting the vertex no longer allows a k-clique,
-    // the weight is always set to 0.
-    //
-    // Return ``true`` if and only if this vertex is newly removed.
-    int counter = 0;
-    int tmp;
-    Bitset& active_vertices = get_active_vertices();
-    if (!active_vertices.has(index)){
-        weight = 0;
-        return false;
-    }
-    if (problem->current_depth > problem->prec_depth){
-        weight = 1;
-        return false;
-    }
-    for (int i=0; i<get_k(); i++){
-        tmp = intersection_count(active_vertices, i);
-        counter += tmp;
-        if (!tmp){
-            // This vertex would not allow for a k-clique anymore.
-            weight = 0;
-            active_vertices.unset(index);
-            return true;
-        }
-    }
-    weight = counter;
-    return false;
-}
-
 // KPartiteGraph in KPartiteKClique
 
 KPartiteKClique::KPartiteGraph::KPartiteGraph() : KPartiteKClique_base::KPartiteGraph::KPartiteGraph(){
@@ -468,13 +391,6 @@ KPartiteKClique::KPartiteGraph::KPartiteGraph() : KPartiteKClique_base::KPartite
 KPartiteKClique::KPartiteGraph::KPartiteGraph(KPartiteKClique* problem, bool fill) : KPartiteKClique_base::KPartiteGraph::KPartiteGraph((KPartiteKClique_base*) problem, fill){
     vertices = vector<Vertex>();
     this->problem = problem;
-}
-
-void KPartiteKClique::KPartiteGraph::pop_last_vertex(){
-    Vertex& v = vertices.back();
-    part_sizes[v.part] -= 1;
-    active_vertices.unset(v.index);
-    vertices.pop_back();
 }
 
 KPartiteKClique::Vertex* KPartiteKClique::KPartiteGraph::last_vertex(){

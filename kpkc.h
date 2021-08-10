@@ -4,10 +4,15 @@
 #include <cstdint>
 #include <vector>
 #include <cassert>
+#include <stdexcept>
 
 // namespace k-partite-k-clicque
 namespace kpkc
 {
+inline uint64_t one_set_bit(int n){
+    return ((uint64_t) 1) << (n % 64);
+}
+
 class Bitset;
 
 class Bitset {
@@ -19,8 +24,15 @@ class Bitset {
         Bitset(Bitset&&) = default;
         Bitset& operator=(const Bitset&) = delete;
         Bitset& operator=(Bitset&&) = default;
-        void unset(int index);
-        bool has(int index);
+
+        void unset(int index){
+            data[index/64] &= ~one_set_bit(index % 64);
+        }
+
+        bool has(int index){
+            return data[index/64] & one_set_bit(index % 64);
+        }
+
         void set(int index);
         int intersection_count(Bitset& r, int start, int stop);
         int count(int start, int stop);
@@ -157,13 +169,62 @@ class KPartiteKClique::Vertex {
         int part;  // The part in the orginal graph.
         int weight;  // The higher, the higher the likelihood of a k-clique with this vertex.
 
-        Vertex() {}
-        Vertex(KPartiteKClique_base::Vertex_template& obj);
-        Vertex(const Vertex& obj);
-        bool set_weight();
+        Vertex() = default;
+
+        Vertex(KPartiteKClique_base::Vertex_template& obj){
+            bitset = &(obj.bitset);
+            part = obj.part;
+            weight = -1;
+            index = obj.index;
+            problem = (KPartiteKClique*) obj.problem;
+
+            if (1 != bitset->count(get_parts()[part], get_parts()[part + 1]))
+                throw std::invalid_argument("the graph is not k-partite");
+        }
+
+        Vertex(const Vertex& obj){
+            bitset = obj.bitset;
+            weight = obj.weight;
+            part = obj.part;
+            index = obj.index;
+            problem = obj.problem;
+        }
+
+        bool set_weight(){
+            // The weight is the number of vertices that are still available when
+            // selecting this vertex.
+            // However, when selecting the vertex no longer allows a k-clique,
+            // the weight is always set to 0.
+            //
+            // Return ``true`` if and only if this vertex is newly removed.
+            int counter = 0;
+            int tmp;
+            Bitset& active_vertices = get_active_vertices();
+            if (!active_vertices.has(index)){
+                weight = 0;
+                return false;
+            }
+            if (problem->current_depth > problem->prec_depth){
+                weight = 1;
+                return false;
+            }
+            for (int i=0; i<get_k(); i++){
+                tmp = intersection_count(active_vertices, i);
+                counter += tmp;
+                if (!tmp){
+                    // This vertex would not allow for a k-clique anymore.
+                    weight = 0;
+                    active_vertices.unset(index);
+                    return true;
+                }
+            }
+            weight = counter;
+            return false;
+        }
         int intersection_count(Bitset& r, int start, int stop){
             return bitset->intersection_count(r, start, stop);
         }
+
         int intersection_count(Bitset& r, int part){
             return intersection_count(r, get_parts()[part], get_parts()[part+1]);
         }
@@ -187,7 +248,12 @@ class KPartiteKClique::KPartiteGraph : KPartiteKClique_base::KPartiteGraph {
         bool select() override;
 
         Vertex* last_vertex();
-        void pop_last_vertex();
+        void pop_last_vertex(){
+            Vertex& v = vertices.back();
+            part_sizes[v.part] -= 1;
+            active_vertices.unset(v.index);
+            vertices.pop_back();
+        }
         bool set_weights(){
             bool new_knowledge = false;
             for(Vertex& v: vertices)
@@ -237,6 +303,20 @@ class FindClique::KPartiteGraph : KPartiteKClique_base::KPartiteGraph {
     protected:
         FindClique* problem;
 };
+
+inline bool KPartiteKClique_base::backtrack(){
+    /*
+    Go the the last valid graph.
+
+    If none exists, return false.
+    */
+    while (current_depth >= 1){
+        current_depth -= 1;
+        if (current_graph()->permits_another_choice())
+            return true;
+    }
+    return false;
+}
 }
 
 #endif
