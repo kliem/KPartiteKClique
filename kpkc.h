@@ -77,19 +77,7 @@ class KPartiteKClique {
         KPartiteGraph* next_graph(){
             return &(recursive_graphs[current_depth + 1]);
         }
-        bool backtrack(){
-            /*
-            Go the the last valid graph.
-
-            If none exists, return false.
-            */
-            while (current_depth >= 1){
-                current_depth -= 1;
-                if (current_graph()->permits_another_choice())
-                    return true;
-            }
-            return false;
-        }
+        bool backtrack();
         void finish_init();
 };
 
@@ -476,6 +464,21 @@ bool KPartiteKClique<kpkc>::KPartiteGraph::select(){
         vertices.resize(0);
 
     return true;
+}
+
+template<Algorithm A>
+bool KPartiteKClique<A>::backtrack(){
+    /*
+    Go the the last valid graph.
+
+    If none exists, return false.
+    */
+    while (current_depth >= 1){
+        current_depth -= 1;
+        if (current_graph()->permits_another_choice())
+            return true;
+    }
+    return false;
 }
 
 }
