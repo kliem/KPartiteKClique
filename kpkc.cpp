@@ -4,7 +4,6 @@
     #include <immintrin.h>
 #endif
 
-#include <algorithm>
 #include <csignal>
 #include <iostream>
 #include <stdlib.h>
@@ -238,9 +237,10 @@ void Bitset::allocate(int n_vertices){
     data.resize(limbs);
 }
 
-// KPartiteKClique_base
+// KPartiteKClique
 
-KPartiteKClique_base::KPartiteKClique_base(const bool* const* incidences, const int n_vertices, const int* first_per_part, const int k){
+template<Algorithm A>
+KPartiteKClique<A>::KPartiteKClique(const bool* const* incidences, const int n_vertices, const int* first_per_part, const int k, const int prec_depth){
     if (k <= 0) throw invalid_argument("k must be at least 1");
 
     current_depth = 0;
@@ -268,9 +268,46 @@ KPartiteKClique_base::KPartiteKClique_base(const bool* const* incidences, const 
             current_part += 1;
         all_vertices.push_back(Vertex_template(this, incidences[i], n_vertices, current_part, i));
     }
+
+    this->prec_depth = prec_depth;
+
+    recursive_graphs = vector<KPartiteGraph>();
+    for (int i=0; i<k; i++){
+        recursive_graphs.push_back(KPartiteGraph(this, i==0));
+    }
+
+    finish_init();
 }
 
-bool KPartiteKClique_base::next(){
+template<>
+void KPartiteKClique<kpkc>::finish_init(){
+    // Assign vertices to the first graph.
+    recursive_graphs.front().vertices.assign(all_vertices.begin(), all_vertices.end());
+
+    // Set weights twice, if there is new knowledge already.
+    if (recursive_graphs.front().set_weights())
+        recursive_graphs.front().set_weights();
+
+    sort(recursive_graphs.front().vertices.begin(), recursive_graphs.front().vertices.end());
+}
+
+template<>
+void KPartiteKClique<FindClique>::finish_init(){
+    // Take care of trivial parts.
+    // ``set_part_sizes`` assumes that parts of size 1 were selected
+    // already, which would not be the case, if the part is 1 to start
+    // with.
+    for (int i=0; i<k; i++){
+        if (parts[i+1] - parts[i] == 1)
+            current_graph()->part_sizes[i] = 2;
+
+    }
+
+    recursive_graphs.front().set_part_sizes();
+}
+
+template<Algorithm A>
+bool KPartiteKClique<A>::next(){
     /*
     Set the next clique.
     Return whether there is a next clique.
@@ -305,61 +342,10 @@ bool KPartiteKClique_base::next(){
     }
 }
 
-// KPartiteKClique
-
-KPartiteKClique::KPartiteKClique(const bool* const* incidences, const int n_vertices, const int* first_per_part, const int k, const int prec_depth)
-        : KPartiteKClique_base::KPartiteKClique_base(incidences, n_vertices, first_per_part, k){
-    this->prec_depth = prec_depth;
-
-    recursive_graphs = vector<KPartiteGraph>();
-    for (int i=0; i<k; i++){
-        recursive_graphs.push_back(KPartiteGraph(this, i==0));
-    }
-
-    // Assign vertices to the first graph.
-    recursive_graphs.front().vertices.assign(all_vertices.begin(), all_vertices.end());
-
-    // Set weights twice, if there is new knowledge already.
-    if (recursive_graphs.front().set_weights())
-        recursive_graphs.front().set_weights();
-
-    sort(recursive_graphs.front().vertices.begin(), recursive_graphs.front().vertices.end());
-}
-
-KPartiteKClique_base::KPartiteGraph* KPartiteKClique::current_graph(){
-    return (KPartiteKClique_base::KPartiteGraph*) &(recursive_graphs[current_depth]);
-}
-
-KPartiteKClique_base::KPartiteGraph* KPartiteKClique::next_graph(){
-    return (KPartiteKClique_base::KPartiteGraph*) &(recursive_graphs[current_depth + 1]);
-}
-
-// FindClique
-
-FindClique::FindClique(const bool* const* incidences, const int n_vertices, const int* first_per_part, const int k)
-        : KPartiteKClique_base::KPartiteKClique_base(incidences, n_vertices, first_per_part, k){
-
-    recursive_graphs = vector<KPartiteGraph>();
-    for (int i=0; i<k; i++){
-        recursive_graphs.push_back(KPartiteGraph(this, i==0));
-    }
-
-    // Take care of trivial parts.
-    // ``set_part_sizes`` assumes that parts of size 1 were selected
-    // already, which would not be the case, if the part is 1 to start
-    // with.
-    for (int i=0; i<k; i++){
-        if (parts[i+1] - parts[i] == 1)
-            current_graph()->part_sizes[i] = 2;
-
-    }
-
-    recursive_graphs.front().set_part_sizes();
-}
-
 // Vertex_template
 
-KPartiteKClique_base::Vertex_template::Vertex_template(KPartiteKClique_base* problem, const bool* incidences, int n_vertices, int part, int index){
+template<Algorithm A>
+KPartiteKClique<A>::Vertex_template::Vertex_template(KPartiteKClique<A>* problem, const bool* incidences, int n_vertices, int part, int index){
     bitset = Bitset(incidences, n_vertices);
     this->part = part;
     this->index = index;
@@ -371,9 +357,11 @@ KPartiteKClique_base::Vertex_template::Vertex_template(KPartiteKClique_base* pro
     bitset.set(index);
 }
 
-// KPartiteGraph in KPartiteKClique_base
+// KPartiteGraph
 
-KPartiteKClique_base::KPartiteGraph::KPartiteGraph(KPartiteKClique_base* problem, bool fill){
+template<Algorithm A>
+KPartiteKClique<A>::KPartiteGraph::KPartiteGraph(KPartiteKClique<A>* problem, bool fill){
+    vertices = vector<Vertex>();
     active_vertices = Bitset(problem->n_vertices, fill);
     part_sizes = vector<int>(problem->k+1);
     for (int i=0; i < problem->k; i++){
@@ -382,179 +370,12 @@ KPartiteKClique_base::KPartiteGraph::KPartiteGraph(KPartiteKClique_base* problem
     this->problem = problem;
 }
 
-// KPartiteGraph in KPartiteKClique
-
-KPartiteKClique::KPartiteGraph::KPartiteGraph() : KPartiteKClique_base::KPartiteGraph::KPartiteGraph(){
-    vertices = vector<Vertex>();
-}
-
-KPartiteKClique::KPartiteGraph::KPartiteGraph(KPartiteKClique* problem, bool fill) : KPartiteKClique_base::KPartiteGraph::KPartiteGraph((KPartiteKClique_base*) problem, fill){
-    vertices = vector<Vertex>();
-    this->problem = problem;
-}
-
-KPartiteKClique::Vertex* KPartiteKClique::KPartiteGraph::last_vertex(){
-    /*
-    Get the last vertex, which is (possibly) a valid choice.
-
-    Pop all vertices that are no longer valid choices.
-    */
-    if (!vertices.size())
-        return NULL;
-    Vertex& v = vertices.back();
-
-    // Remove all vertices,
-    // that are no longer
-    // a valid choice.
-    while (!v.weight){
-        pop_last_vertex();
-        if (!vertices.size())
-            return NULL;
-        v = vertices.back();
-    }
-    return &v;
-}
-
-bool KPartiteKClique::KPartiteGraph::permits_another_choice(){
-    for (int i=0; i<get_k(); i++){
-        if (part_sizes[i] == 0)
-            return false;
-    }
-    return true;
-}
-
-bool KPartiteKClique::KPartiteGraph::select(KPartiteKClique_base::KPartiteGraph* next2){
-    /*
-    Select the last (valid) vertex of the current graph set up the next graph
-    to be all vertices connected to that last vertex.
-
-    Return false, if there are no vertices left.
-    */
-    KPartiteGraph* next = (KPartiteGraph*) next2;
-    Vertex* v = last_vertex();
-    if (!v)
-        return false;
-
-    // Copy the current sizes.
-    for (int i=0; i<get_k(); i++)
-        next->part_sizes[i] = part_sizes[i];
-
-    // Select v.
-    problem->_k_clique[v->part] = v->index;
-    intersection(next->active_vertices, *v, active_vertices);
-
-    int part = v->part;
-
-    // v may no longer be selected.
-    // In current not, because we have removed it.
-    // In next not, because it is selected already.
-    pop_last_vertex();
-    next->vertices.assign(vertices.begin(), vertices.end());
-
-    // Note the part size of ``_k_clique[v.part]``:
-    // current is one smaller than next.
-    // This is intentional, as in next the vertex was selected, not
-    // removed.
-
-    // Apply the new knowledge.
-    if (part_sizes[part] == 1){
-        this->set_weights();
-        sort(vertices.begin(), vertices.end());
-    }
-    if (part_sizes[part] == 0)
-        vertices.resize(0);
-
-    // Raise the current
-    // depth, such that the
-    // weights get set
-    // accordingly.
-    problem->current_depth += 1;
-
-    next->set_weights();
-
-    // When setting weights, we also discover that some vertices are not
-    // longer possible.
-    // This information can be used to call set weights again and get
-    // preciser results.
-    // This appears to pay off if we are not too deep in the recursion
-    // tree.
-    if (problem->current_depth < problem->prec_depth && next->set_weights())
-        next->set_weights();
-
-    sort(next->vertices.begin(), next->vertices.end());
-
-    return true;
-}
-
-bool KPartiteKClique::KPartiteGraph::select(){
-    /*
-    Select the last (valid) vertex of the current graph and return
-    whether it exists.
-
-    It is assumed that there is no next graph.
-    */
-    assert(problem->current_depth == problem->k -1);
-    Vertex* v = last_vertex();
-    if (!v)
-        return false;
-
-    // Select v.
-    problem->_k_clique[v->part] = v->index;
-    int part = v->part;
-
-    // v may no longer be selected.
-    // In current not, because we have removed it.
-    pop_last_vertex();
-
-    if (part_sizes[part] == 0)
-        vertices.resize(0);
-
-    return true;
-}
-
-// KPartiteGraph in FindClique
-
-FindClique::KPartiteGraph::KPartiteGraph(FindClique* problem, bool fill) : KPartiteKClique_base::KPartiteGraph::KPartiteGraph((KPartiteKClique_base*) problem, fill){
-    this->problem = problem;
-}
-
-bool FindClique::KPartiteGraph::set_part_sizes(){
-    /*
-    Set the sizes of the parts.
-
-    Return false, if any part has size 0, otherwise true
-    */
-    int i;
-    int min_so_far = problem->n_vertices;
-    selected_part = -1;
-    for(i=0; i < problem->k; i++){
-        if (part_sizes[i] != 1){
-            int j = count(i);
-            part_sizes[i] = j;
-            if (j == 0){
-                // this part is empty; need to backtrack
-                selected_part = -2;
-                return false;
-            }
-            if (j == 1){
-                // this part has a unique choice
-                selected_part = i;
-                return true;
-            } else if (j < min_so_far){
-                min_so_far = j;
-                selected_part = i;
-            }
-        }
-    }
-    return true;
-}
-
-bool FindClique::KPartiteGraph::select(KPartiteKClique_base::KPartiteGraph* next2){
+template<>
+bool KPartiteKClique<FindClique>::KPartiteGraph::select(KPartiteGraph* next){
     /*
     Select the first vertex in the smallest part.
     Return false, if there are no vertices left.
     */
-    KPartiteGraph* next = (KPartiteGraph*) next2;
     assert(selected_part != -1); // Should not be called, if we found a clique already.
     if (!part_sizes[selected_part])
         return false;
@@ -584,7 +405,8 @@ bool FindClique::KPartiteGraph::select(KPartiteKClique_base::KPartiteGraph* next
     return next->set_part_sizes();
 }
 
-bool FindClique::KPartiteGraph::select(){
+template<>
+bool KPartiteKClique<FindClique>::KPartiteGraph::select(){
     /*
     Select the first vertex in the smallest part.
     Return false, if there are no vertices left.
@@ -606,17 +428,5 @@ bool FindClique::KPartiteGraph::select(){
     pop_vertex(selected_part, v);
 
     return true;
-}
-
-KPartiteKClique_base::KPartiteGraph* FindClique::current_graph(){
-    return (KPartiteKClique_base::KPartiteGraph*) &(recursive_graphs[current_depth]);
-}
-
-KPartiteKClique_base::KPartiteGraph* FindClique::next_graph(){
-    return (KPartiteKClique_base::KPartiteGraph*) &(recursive_graphs[current_depth + 1]);
-}
-
-bool FindClique::KPartiteGraph::permits_another_choice(){
-    return ((selected_part >= 0) && (part_sizes[selected_part]));
 }
 }
