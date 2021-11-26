@@ -30,20 +30,21 @@ class Bitset {
             data[index/64] &= ~one_set_bit(index % 64);
         }
 
-        bool has(int index){
+        bool has(int index) const {
             return data[index/64] & one_set_bit(index % 64);
         }
 
         void set(int index);
-        int intersection_count(Bitset& r, int start, int stop);
-        int count(int start, int stop);
-        int first(int start);
-        void intersection_assign(Bitset& l, Bitset& r);
+        int intersection_count(const Bitset& r, int start, int stop) const;
+        int count(int start, int stop) const;
+        int first(int start) const;
+        void intersection_assign(const Bitset& l, const Bitset& r);
     protected:
         std::vector<uint64_t> data;
         int limbs{0};
         void allocate(int n_vertices);
         uint64_t& operator[](int i){ return data[i]; }
+        const uint64_t& operator[](int i) const { return data[i]; }
 };
 
 enum Algorithm { kpkc, FindClique };
@@ -57,7 +58,7 @@ class KPartiteKClique {
     public:
         KPartiteKClique(const bool* const* incidences, const int n_vertices, const int* first_per_part, const int k, const int prec_depth=5);
         virtual ~KPartiteKClique() = default;
-        const int* k_clique(){ return _k_clique.data(); }
+        const int* k_clique() const { return _k_clique.data(); }
         bool next();
 
         KPartiteKClique(const KPartiteKClique&) = delete;
@@ -91,7 +92,7 @@ class KPartiteKClique<A>::Vertex_template {
     friend KPartiteKClique<A>;
     friend KPartiteKClique<A>::Vertex;
 
-    friend void intersection(Bitset& c, Vertex_template& l, Bitset& r){
+    friend void intersection(Bitset& c, const Vertex_template& l, const Bitset& r){
         c.intersection_assign(l.bitset, r);
     }
 
@@ -119,7 +120,7 @@ class KPartiteKClique<A>::KPartiteGraph {
         KPartiteGraph() = default;
         KPartiteGraph(KPartiteKClique<A>* problem, bool fill);
 
-        bool permits_another_choice();
+        bool permits_another_choice() const;
         bool select(KPartiteGraph* next);
         bool select();
 
@@ -131,13 +132,13 @@ class KPartiteKClique<A>::KPartiteGraph {
         // FindClique
         int selected_part;
         bool set_part_sizes();
-        int count(int start, int stop){
+        int count(int start, int stop) const {
             return active_vertices.count(start, stop);
         }
-        int count(int part){
+        int count(int part) const {
             return count(get_parts()[part], get_parts()[part+1]);
         }
-        int first(int part);
+        int first(int part) const;
         void pop_vertex(int part, int vertex);
 
         KPartiteGraph(const KPartiteGraph&) = delete;
@@ -145,8 +146,8 @@ class KPartiteKClique<A>::KPartiteGraph {
         KPartiteGraph(KPartiteGraph&&) = default;
         KPartiteGraph& operator=(KPartiteGraph&&) = default;
     private:
-        const int* get_parts() { assert(problem); return problem->parts.data(); }
-        const int get_k() { assert(problem); return problem->k; }
+        const int* get_parts() const { assert(problem); return problem->parts.data(); }
+        const int get_k() const { assert(problem); return problem->k; }
         KPartiteKClique<A>::KPartiteGraph* current_graph(){ return problem->current_graph(); }
         KPartiteKClique<A>::KPartiteGraph* next_graph(){ return problem->next_graph(); }
         KPartiteKClique<A>* problem{nullptr};
@@ -165,13 +166,13 @@ template<>
 inline bool KPartiteKClique<kpkc>::KPartiteGraph::set_part_sizes() { return false;}
 
 template<>
-inline int KPartiteKClique<kpkc>::KPartiteGraph::count(int, int) { return 0;}
+inline int KPartiteKClique<kpkc>::KPartiteGraph::count(int, int) const { return 0;}
 
 template<>
-inline int KPartiteKClique<kpkc>::KPartiteGraph::count(int) { return 0;}
+inline int KPartiteKClique<kpkc>::KPartiteGraph::count(int) const { return 0;}
 
 template<>
-inline int KPartiteKClique<kpkc>::KPartiteGraph::first(int) { return 0;}
+inline int KPartiteKClique<kpkc>::KPartiteGraph::first(int) const { return 0;}
 
 template<>
 inline void KPartiteKClique<kpkc>::KPartiteGraph::pop_vertex(int, int) {}
@@ -190,7 +191,7 @@ class KPartiteKClique<kpkc>::Vertex {
         // and put the last (to be popped first).
         return l.weight > r.weight;
     }
-    friend void intersection(Bitset& c, Vertex& l, Bitset& r){
+    friend void intersection(Bitset& c, const Vertex& l, const Bitset& r){
         c.intersection_assign(*(l.bitset), r);
     }
 
@@ -201,7 +202,7 @@ class KPartiteKClique<kpkc>::Vertex {
 
         Vertex() = default;
 
-        Vertex(Vertex_template& obj){
+        Vertex(const Vertex_template& obj){
             bitset = &(obj.bitset);
             part = obj.part;
             weight = -1;
@@ -251,19 +252,19 @@ class KPartiteKClique<kpkc>::Vertex {
             weight = counter;
             return false;
         }
-        int intersection_count(Bitset& r, int start, int stop){
+        int intersection_count(const Bitset& r, int start, int stop) const {
             return bitset->intersection_count(r, start, stop);
         }
 
-        int intersection_count(Bitset& r, int part){
+        int intersection_count(const Bitset& r, int part) const {
             return intersection_count(r, get_parts()[part], get_parts()[part+1]);
         }
 
     private:
-        Bitset* bitset;
+        const Bitset* bitset;
         KPartiteKClique* problem;
-        const int* get_parts() { return problem->parts.data(); }
-        const int get_k() { return problem->k; }
+        const int* get_parts() const { return problem->parts.data(); }
+        const int get_k() const { return problem->k; }
         Bitset& get_active_vertices() { return problem->current_graph()->active_vertices; }
 };
 
@@ -309,17 +310,17 @@ inline KPartiteKClique<kpkc>::Vertex* KPartiteKClique<kpkc>::KPartiteGraph::last
 }
 
 template<>
-inline int KPartiteKClique<FindClique>::KPartiteGraph::count(int start, int stop){
+inline int KPartiteKClique<FindClique>::KPartiteGraph::count(int start, int stop) const {
     return active_vertices.count(start, stop);
 }
 
 template<>
-inline int KPartiteKClique<FindClique>::KPartiteGraph::count(int part){
+inline int KPartiteKClique<FindClique>::KPartiteGraph::count(int part) const {
     return count(get_parts()[part], get_parts()[part+1]);
 }
 
 template<>
-inline int KPartiteKClique<FindClique>::KPartiteGraph::first(int part){
+inline int KPartiteKClique<FindClique>::KPartiteGraph::first(int part) const {
     int the_first = active_vertices.first(get_parts()[part]);
     return (the_first < get_parts()[part+1]) ? the_first : -1;
 }
@@ -363,7 +364,7 @@ inline bool KPartiteKClique<FindClique>::KPartiteGraph::set_part_sizes(){
 }
 
 template<>
-inline bool KPartiteKClique<kpkc>::KPartiteGraph::permits_another_choice(){
+inline bool KPartiteKClique<kpkc>::KPartiteGraph::permits_another_choice() const {
     for (int i=0; i<get_k(); i++){
         if (part_sizes[i] == 0)
             return false;
@@ -372,7 +373,7 @@ inline bool KPartiteKClique<kpkc>::KPartiteGraph::permits_another_choice(){
 }
 
 template<>
-inline bool KPartiteKClique<FindClique>::KPartiteGraph::permits_another_choice(){
+inline bool KPartiteKClique<FindClique>::KPartiteGraph::permits_another_choice() const {
     return ((selected_part >= 0) && (part_sizes[selected_part]));
 }
 

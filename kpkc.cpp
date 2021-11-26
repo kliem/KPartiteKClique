@@ -115,13 +115,13 @@ Bitset::Bitset(const bool* set_bits, int n_vertices){
     }
 }
 
-void Bitset::intersection_assign(Bitset& l, Bitset& r){
+void Bitset::intersection_assign(const Bitset& l, const Bitset& r){
     // Assumes all of same length.
     for (int i=0; i<limbs; i++)
         data[i] = l[i] & r[i];
 }
 
-int Bitset::intersection_count(Bitset& r, int start, int stop){
+int Bitset::intersection_count(const Bitset& r, int start, int stop) const {
     /*
     Count the number of set bits in ``this & r``
     in ``range(start, stop)``.
@@ -160,7 +160,7 @@ int Bitset::intersection_count(Bitset& r, int start, int stop){
     return counter;
 }
 
-int Bitset::count(int start, int stop){
+int Bitset::count(int start, int stop) const {
     /*
     Count the number of set bits in ``this``
     in ``range(start, stop)``.
@@ -199,7 +199,7 @@ int Bitset::count(int start, int stop){
     return counter;
 }
 
-int Bitset::first(int start){
+int Bitset::first(int start) const {
     /*
     Return the first bit in ``this``
     in ``range(start, stop)``.
