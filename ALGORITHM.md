@@ -44,7 +44,7 @@ They have far from equally distributed edges.
 
 We use the pivot selection strategy described in
 
-- Konc,J. and Janezic,D. An improved branch and bound algorithm for the maximum clique problem. MATCH Commun. Math. Comput. Chem., 2007, 58, 569-590.
+- Konc,J. and Janežič,D. An improved branch and bound algorithm for the maximum clique problem. MATCH Commun. Math. Comput. Chem., 2007, 58, 569-590.
 
 *Select a vertex with minimal degree*
 
