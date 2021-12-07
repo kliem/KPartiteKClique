@@ -17,7 +17,7 @@ In particular the GCC suite supports it.
 
 We provide an implementation of `FindClique` that was first described in
 
-- Grunert, Tore & Irnich, Stefan & Zimmermann, Hans-Jürgen & Schneider, Markus & Wulfhorst, Burkhard. (2001). Cliques in k-partite Graphs and their Application in Textile Engineering
+- Grünert, Tore & Irnich, Stefan & Zimmermann, Hans-Jürgen & Schneider, Markus & Wulfhorst, Burkhard. (2001). Cliques in k-partite Graphs and their Application in Textile Engineering
 
 and the follow up
 

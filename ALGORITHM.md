@@ -5,7 +5,7 @@
 To iterate over all k-cliques of a k-partite graph, there is a very
 natural approach that is also described in
 
-- Grunert, Tore & Irnich, Stefan & Zimmermann, Hans-Jürgen & Schneider, Markus & Wulfhorst, Burkhard. (2001). Cliques in k-partite Graphs and their Application in Textile Engineering
+- Grünert, Tore & Irnich, Stefan & Zimmermann, Hans-Jürgen & Schneider, Markus & Wulfhorst, Burkhard. (2001). Cliques in k-partite Graphs and their Application in Textile Engineering
 
 The following follow up proposes to use bitsets as a data structure and
 improves upon the implementation:
